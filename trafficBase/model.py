@@ -47,8 +47,14 @@ class CityModel(Model):
                     elif col == "D":
                         agent = Destination(f"d_{r*self.width+c}", self)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
-
+        ### Creates cars ###
         self.num_agents = N
+        for i in range(self.num_agents):
+            agent = Car(f"c_{i}", self)
+            pos = (0,0)
+            self.grid.place_agent(agent, pos)
+            self.schedule.add(agent)
+
         self.running = True
 
     def step(self):

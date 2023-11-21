@@ -15,13 +15,35 @@ class Car(Agent):
             model: Model reference for the agent
         """
         super().__init__(unique_id, model)
+        self.visited_cells = []
+        self.position_stack = []
 
     def move(self):
         """ 
         Determines if the agent can move in the direction that was chosen
         """        
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+            )
+        self.neighbor_queue = [(pos,self.visited_cells.count(pos)) for pos in possible_steps if not any(isinstance(agent,Obstacle)
+                                for agent in self.model.grid.get_cell_list_contents(pos))]
+        self.neighbor_queue.sort(key=lambda x: x[1])
+        self.neighbor_queue=[pos for pos, count in self.neighbor_queue]
+       
         self.model.grid.move_to_empty(self)
 
+        if self.neighbor_queue:
+            next_move = self.neighbor_queue[0]
+        else:
+            if self.position_stack:
+                previus_position = self.position_stack.pop()
+                if previus_position in possible_steps:
+                    next_move = previus_position
+        if next_move:
+            self.model.grid.move_agent(self, next_move)
+            self.visited_cells.append(next_move)
+            if next_move not in self.position_stack:
+                self.position_stack.append(self.pos)
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
