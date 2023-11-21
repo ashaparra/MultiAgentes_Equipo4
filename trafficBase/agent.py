@@ -1,4 +1,5 @@
 from mesa import Agent
+import random
 
 class Car(Agent):
     """
@@ -17,33 +18,65 @@ class Car(Agent):
         super().__init__(unique_id, model)
         self.visited_cells = []
         self.position_stack = []
+        self.steps_taken = 0
+        self.direction = None
 
     def move(self):
-        """ 
+        """
         Determines if the agent can move in the direction that was chosen
-        """        
+        """
+        # Check all contents in the current cell to find a Road agent.
+        current_cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+        road_direction = None
+        for content in current_cell_contents:
+            if isinstance(content, Road):
+                self.direction = content.direction
+                print(content.direction)
+                break
+
+        # Get possible steps (Moore neighborhood without center cell)
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
-            )
-        self.neighbor_queue = [(pos,self.visited_cells.count(pos)) for pos in possible_steps if not any(isinstance(agent,Obstacle)
-                                for agent in self.model.grid.get_cell_list_contents(pos))]
-        self.neighbor_queue.sort(key=lambda x: x[1])
-        self.neighbor_queue=[pos for pos, count in self.neighbor_queue]
-       
-        self.model.grid.move_to_empty(self)
+        )
 
+        # Filter out steps that lead to a cell with an Obstacle
+        self.neighbor_queue = [
+            pos for pos in possible_steps 
+            if not any(isinstance(agent, Obstacle) for agent in self.model.grid.get_cell_list_contents(pos))
+        ]
+
+
+        # Filter the neighbor_queue based on the current direction
+        if self.direction == "Right":
+            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[0] > self.pos[0]]
+        elif self.direction == "Left":
+            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[0] < self.pos[0]]
+        elif self.direction == "Up":
+            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[1] > self.pos[1]]
+        elif self.direction == "Down":
+            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[1] < self.pos[1]]
+
+        # Choose the next move
+        next_move = None
         if self.neighbor_queue:
-            next_move = self.neighbor_queue[0]
+            next_move = self.random.choice(self.neighbor_queue)
         else:
+            # If no valid move found, backtrack if possible
             if self.position_stack:
-                previus_position = self.position_stack.pop()
-                if previus_position in possible_steps:
-                    next_move = previus_position
+                previous_position = self.position_stack.pop()
+                if previous_position in possible_steps:
+                    next_move = previous_position
+
+        # Execute the move if possible
         if next_move:
             self.model.grid.move_agent(self, next_move)
             self.visited_cells.append(next_move)
+            self.steps_taken += 1
             if next_move not in self.position_stack:
                 self.position_stack.append(self.pos)
+
+
+
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
