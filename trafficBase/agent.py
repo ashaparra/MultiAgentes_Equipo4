@@ -8,7 +8,7 @@ class Car(Agent):
         unique_id: Agent's ID 
         direction: Randomly chosen direction chosen from one of eight directions
     """
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, destination):
         """
         Creates a new random agent.
         Args:
@@ -19,7 +19,9 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
+        self.destination = destination
         self.direction = None
+        
 
     def move(self):
         """
@@ -74,6 +76,8 @@ class Car(Agent):
             self.steps_taken += 1
             if next_move not in self.position_stack:
                 self.position_stack.append(self.pos)
+
+        print(self.destination)
 
 
 
