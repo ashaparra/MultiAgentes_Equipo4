@@ -18,6 +18,7 @@ class CityModel(Model):
 
         self.traffic_lights = []
         self.destinations=[]
+        self.road_directions = {}
 
         # Load the map file. The map file is a text file where each character represents an agent.
         with open('city_files/2022_base.txt') as baseFile:
@@ -34,6 +35,7 @@ class CityModel(Model):
                     if col in ["v", "^", ">", "<"]:
                         agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col])
                         self.grid.place_agent(agent, (c, self.height - r - 1))
+                        self.road_directions[(c, self.height - r - 1)] = col
                     
 
                     elif col in ["S", "s"]:
@@ -65,3 +67,4 @@ class CityModel(Model):
     def step(self):
         '''Advance the model by one step.'''
         self.schedule.step()
+        

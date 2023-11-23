@@ -1,5 +1,9 @@
 from mesa import Agent
+from pathfinding.core.grid import Grid
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.finder.a_star import AStarFinder
 import random
+
 
 class Car(Agent):
     """
@@ -21,63 +25,185 @@ class Car(Agent):
         self.steps_taken = 0
         self.destination = destination
         self.direction = None
-        
+        self.path = []
+        self.road_directions = self.model.road_directions
 
-    def move(self):
+
+    def get_neighbors(self, grid, node):
+        # Calculate the coordinates of each neighbor and add it to the list if it's on the grid
+        neighbors = []
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        for dx, dy in directions:
+            nx, ny = node.x + dx, node.y + dy
+            if 0 <= nx < self.model.width and 0 <= ny < self.model.height:
+                neighbor_node = grid.node(nx, ny)
+                if neighbor_node.walkable:
+                    neighbors.append(neighbor_node)
+        return neighbors
+    
+    def get_directional_path_grid(self):
+        # Initialize the grid with walkable nodes
+        directional_grid = Grid(matrix=[[1] * self.model.width for _ in range(self.model.height)])
+
+        # Set walkability based on obstacles by checking each cell's contents
+        for y in range(self.model.height):
+            for x in range(self.model.width):
+                cell_contents = self.model.grid.get_cell_list_contents((x, y))
+                is_obstacle_here = any(isinstance(obj, Obstacle) for obj in cell_contents)
+                directional_grid.node(x, y).walkable = not is_obstacle_here
+
+        # Apply road directions and check for possible turns at intersections
+        for (x, y), direction in self.model.road_directions.items():
+            node = directional_grid.node(x, y)
+            neighbors = self.get_neighbors(directional_grid, node)
+
+            # Set connections based on road directions
+            node.connections = []
+            for n in neighbors:
+                if self.can_move(node, n):  # Only connect nodes if movement is allowed
+                    node.connections.append(n)
+
+        return directional_grid
+
+    def at_intersection(self, x, y):
+        # Define the relative positions of orthogonal neighbors
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        road_directions = set()
+
+        # Calculate the coordinates of each neighbor
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            
+            # Check if the neighbor is within grid bounds
+            if 0 <= nx < self.model.width and 0 <= ny < self.model.height:
+                # If there's a road in that direction, add its direction to the set
+                if (nx, ny) in self.road_directions:
+                    road_directions.add(self.road_directions[(nx, ny)])
+
+        # If there are more than one direction, it's an intersection
+        return len(road_directions) > 1
+    
+    # def can_move(self, from_node, to_node):
+    #     """
+    #     Determines if movement from one node to another is allowed based on road direction.
+    #     """
+    #     from_direction = self.road_directions.get((from_node.x, from_node.y))
+    #     to_direction = self.road_directions.get((to_node.x, to_node.y))
+
+    #     # If both nodes have a road direction, ensure the movement is consistent with the direction
+    #     if from_direction and to_direction:
+    #         if from_direction == '>':
+    #             return to_node.x > from_node.x
+    #         elif from_direction == '<':
+    #             return to_node.x < from_node.x
+    #         elif from_direction == '^':
+    #             return to_node.y < from_node.y
+    #         elif from_direction == 'v':
+    #             return to_node.y > from_node.y
+
+    #     # If there's no road direction, or it's an intersection, allow the move
+    #     return True
+    def can_move(self, from_node, to_node):
         """
-        Determines if the agent can move in the direction that was chosen
+        Determines if movement from one node to another is allowed based on road direction.
         """
-        # Check all contents in the current cell to find a Road agent.
-        current_cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-        road_direction = None
-        for content in current_cell_contents:
-            if isinstance(content, Road):
-                self.direction = content.direction
-                print(content.direction)
-                break
+        from_x, from_y = from_node.pos  # Get the current position
+        to_x, to_y = to_node.pos  # Get the target position
 
-        # Get possible steps (Moore neighborhood without center cell)
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False
-        )
+        from_direction = self.road_directions.get((from_x, from_y))
+        to_direction = self.road_directions.get((to_x, to_y))
 
-        # Filter out steps that lead to a cell with an Obstacle
-        self.neighbor_queue = [
-            pos for pos in possible_steps 
-            if not any(isinstance(agent, Obstacle) for agent in self.model.grid.get_cell_list_contents(pos))
-        ]
+        # If both nodes have a road direction, ensure the movement is consistent with the direction
+        if from_direction and to_direction:
+            if from_direction == '>':
+                return to_x > from_x
+            elif from_direction == '<':
+                return to_x < from_x
+            elif from_direction == '^':
+                return to_y < from_y
+            elif from_direction == 'v':
+                return to_y > from_y
+
+        # If there's no road direction, or it's an intersection, allow the move
+        return True
 
 
-        # Filter the neighbor_queue based on the current direction
-        if self.direction == "Right":
-            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[0] > self.pos[0]]
-        elif self.direction == "Left":
-            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[0] < self.pos[0]]
-        elif self.direction == "Up":
-            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[1] > self.pos[1]]
-        elif self.direction == "Down":
-            self.neighbor_queue = [pos for pos in self.neighbor_queue if pos[1] < self.pos[1]]
+    def navigate_to_destination(self):
+        # Get a directional grid from the car's local method
+        grid = self.get_directional_path_grid()
+        start = grid.node(self.pos[0], self.pos[1])
+        end = grid.node(self.destination[0], self.destination[1])
 
-        # Choose the next move
-        next_move = None
-        if self.neighbor_queue:
-            next_move = self.random.choice(self.neighbor_queue)
+        # Use the A* algorithm to find the path
+        finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+        path, _ = finder.find_path(start, end, grid)
+
+        # If a path is found, convert GridNodes to coordinate tuples and store it for the car to follow
+        if path:
+            self.path = [(node.x, node.y) for node in path]
+            # If you need to exclude the starting point, uncomment the following line:
+            self.path = [(node.x, node.y) for node in path[1:]]
         else:
-            # If no valid move found, backtrack if possible
-            if self.position_stack:
-                previous_position = self.position_stack.pop()
-                if previous_position in possible_steps:
-                    next_move = previous_position
+            self.path = []
 
-        # Execute the move if possible
-        if next_move:
-            self.model.grid.move_agent(self, next_move)
-            self.visited_cells.append(next_move)
-            self.steps_taken += 1
-            if next_move not in self.position_stack:
-                self.position_stack.append(self.pos)
+    # def move(self):
+    #     # Move the agent towards the destination if a path exists
+    #     if not self.path:
+    #         self.navigate_to_destination()
 
-        print(self.destination)
+    #     if self.path:
+    #         next_position = self.path.pop(0)
+            
+    #         # Ensure next_position is a tuple, expected by get_cell_list_contents
+    #         assert isinstance(next_position, tuple), "next_position must be a tuple of (x, y)"
+            
+    #         cell_contents = self.model.grid.get_cell_list_contents(next_position)
+            
+    #         # Check if the next position is a road and if the direction is correct
+    #         next_node = None
+    #         for content in cell_contents:
+    #             if isinstance(content, Road):
+    #                 next_node = content
+    #                 break
+
+    #         if next_node:
+    #             # Check if the current position is a road and get its direction
+    #             current_cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+    #             current_road = None
+    #             for content in current_cell_contents:
+    #                 if isinstance(content, Road):
+    #                     current_road = content
+    #                     break
+                    
+    #             # If the current position is a road and the direction matches, move the agent
+    #             if current_road and current_road.direction == next_node.direction:
+    #                 self.model.grid.move_agent(self, next_position)
+    #                 self.visited_cells.append(next_position)
+    def move(self):
+        # Move the agent towards the destination if a path exists
+        if not self.path:
+            self.navigate_to_destination()
+
+        if self.path:
+            next_position = self.path.pop(0)
+            
+            # Ensure next_position is a tuple, expected by get_cell_list_contents
+            assert isinstance(next_position, tuple), "next_position must be a tuple of (x, y)"
+            
+            cell_contents = self.model.grid.get_cell_list_contents(next_position)
+            
+            # Check if the next position is a road and if the direction is correct
+            next_road_direction = None
+            for content in cell_contents:
+                if isinstance(content, Road):
+                    next_road_direction = content.direction
+                    break
+                
+            # Check if the next step is in the correct direction
+            if next_road_direction and self.can_move(self, next_position):
+                self.model.grid.move_agent(self, next_position)
+                self.visited_cells.append(next_position)
+
 
 
 
@@ -148,3 +274,4 @@ class Road(Agent):
 
     def step(self):
         pass
+
