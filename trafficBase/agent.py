@@ -17,7 +17,7 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = destination
+        self.destination = (5,4)
         self.direction = None
         
     # def create_custom_grid(self):
@@ -72,7 +72,7 @@ class Car(Agent):
         Create a directed graph for pathfinding that takes into account the directions of the roads at neighbor cells.
         """
         # Initialize the grid with all cells potentially walkable
-        grid = Grid(matrix=[[1 for _ in range(self.model.width)] for _ in range(self.model.height)])
+        grid = Grid(matrix=[[0 for _ in range(self.model.width)] for _ in range(self.model.height)])
 
         # Iterate through each cell in the Mesa grid
         for x in range(self.model.width):
@@ -83,7 +83,7 @@ class Car(Agent):
 
                 # Initialize connections for this node
                 current_node.connections = []
-                current_node.walkable = True
+                #current_node.walkable = True
 
                 # Check for obstacles and set walkable property
                 if any(isinstance(content, Obstacle) for content in cell_contents):
@@ -178,7 +178,6 @@ class Car(Agent):
             print(row_str)
         return
 
-
     def move(self):
         """
         Moves the car towards its destination using A* pathfinding, considering obstacles and road direction.
@@ -204,10 +203,11 @@ class Car(Agent):
         # Find the path from start to end using the custom grid
         print("Finding path...")
         path, runs = finder.find_path(start_node, end_node, custom_grid)
-      
+        print(path)
 
         # If a path exists, move the car along the path
         if path and len(path) > 1:
+            #print(path)
             next_step = path[1]  # Next step should be a tuple (x, y)
             print( "Type:", type(next_step))
             next_step_pos = (next_step.x, next_step.y) 
