@@ -83,49 +83,29 @@ class Car(Agent):
         # If there are more than one direction, it's an intersection
         return len(road_directions) > 1
     
-    # def can_move(self, from_node, to_node):
-    #     """
-    #     Determines if movement from one node to another is allowed based on road direction.
-    #     """
-    #     from_direction = self.road_directions.get((from_node.x, from_node.y))
-    #     to_direction = self.road_directions.get((to_node.x, to_node.y))
-
-    #     # If both nodes have a road direction, ensure the movement is consistent with the direction
-    #     if from_direction and to_direction:
-    #         if from_direction == '>':
-    #             return to_node.x > from_node.x
-    #         elif from_direction == '<':
-    #             return to_node.x < from_node.x
-    #         elif from_direction == '^':
-    #             return to_node.y < from_node.y
-    #         elif from_direction == 'v':
-    #             return to_node.y > from_node.y
-
-    #     # If there's no road direction, or it's an intersection, allow the move
-    #     return True
     def can_move(self, from_node, to_node):
         """
         Determines if movement from one node to another is allowed based on road direction.
         """
-        from_x, from_y = from_node.pos  # Get the current position
-        to_x, to_y = to_node.pos  # Get the target position
-
-        from_direction = self.road_directions.get((from_x, from_y))
-        to_direction = self.road_directions.get((to_x, to_y))
+        from_direction = self.road_directions.get((from_node.x, from_node.y))
+        to_direction = self.road_directions.get((to_node.x, to_node.y))
 
         # If both nodes have a road direction, ensure the movement is consistent with the direction
         if from_direction and to_direction:
             if from_direction == '>':
-                return to_x > from_x
+                return to_node.x > from_node.x
             elif from_direction == '<':
-                return to_x < from_x
+                return to_node.x < from_node.x
             elif from_direction == '^':
-                return to_y < from_y
+                return to_node.y < from_node.y
             elif from_direction == 'v':
-                return to_y > from_y
+                return to_node.y > from_node.y
 
         # If there's no road direction, or it's an intersection, allow the move
         return True
+    
+
+
 
 
     def navigate_to_destination(self):
@@ -146,39 +126,6 @@ class Car(Agent):
         else:
             self.path = []
 
-    # def move(self):
-    #     # Move the agent towards the destination if a path exists
-    #     if not self.path:
-    #         self.navigate_to_destination()
-
-    #     if self.path:
-    #         next_position = self.path.pop(0)
-            
-    #         # Ensure next_position is a tuple, expected by get_cell_list_contents
-    #         assert isinstance(next_position, tuple), "next_position must be a tuple of (x, y)"
-            
-    #         cell_contents = self.model.grid.get_cell_list_contents(next_position)
-            
-    #         # Check if the next position is a road and if the direction is correct
-    #         next_node = None
-    #         for content in cell_contents:
-    #             if isinstance(content, Road):
-    #                 next_node = content
-    #                 break
-
-    #         if next_node:
-    #             # Check if the current position is a road and get its direction
-    #             current_cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-    #             current_road = None
-    #             for content in current_cell_contents:
-    #                 if isinstance(content, Road):
-    #                     current_road = content
-    #                     break
-                    
-    #             # If the current position is a road and the direction matches, move the agent
-    #             if current_road and current_road.direction == next_node.direction:
-    #                 self.model.grid.move_agent(self, next_position)
-    #                 self.visited_cells.append(next_position)
     def move(self):
         # Move the agent towards the destination if a path exists
         if not self.path:
@@ -193,18 +140,26 @@ class Car(Agent):
             cell_contents = self.model.grid.get_cell_list_contents(next_position)
             
             # Check if the next position is a road and if the direction is correct
-            next_road_direction = None
+            next_node = None
             for content in cell_contents:
                 if isinstance(content, Road):
-                    next_road_direction = content.direction
+                    next_node = content
                     break
-                
-            # Check if the next step is in the correct direction
-            if next_road_direction and self.can_move(self, next_position):
-                self.model.grid.move_agent(self, next_position)
-                self.visited_cells.append(next_position)
 
-
+            if next_node:
+                # Check if the current position is a road and get its direction
+                current_cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+                current_road = None
+                for content in current_cell_contents:
+                    if isinstance(content, Road):
+                        current_road = content
+                        break
+                    
+                # If the current position is a road and the direction matches, move the agent
+                if current_road and current_road.direction == next_node.direction:
+                    self.model.grid.move_agent(self, next_position)
+                    self.visited_cells.append(next_position)
+   
 
 
     def step(self):
