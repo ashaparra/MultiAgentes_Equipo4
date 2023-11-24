@@ -95,16 +95,26 @@ class Car(Agent):
             current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
+                print(f"Valid neighbors for {node_id}: {valid_neighbors}")
                 for neighbor_pos in valid_neighbors:
                     neighbor_id = f"{neighbor_pos[0]},{neighbor_pos[1]}"
                     if neighbor_id in nodes:
                         neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
+                        if any(isinstance(content, Obstacle) for content in neighbor_contents):
+                            continue  # Skip obstacles
                         neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
+                        #if any(isinstance(content, Road) for content in neighbor_contents):
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
-                            edges.append((node, nodes[neighbor_id], 1))  # Assuming a cost of 1 for each edge
+                            edges.append((node, nodes[neighbor_id], 1))
                             print(f"Edge created: {node_id} -> {neighbor_id}")
+                        
+                        
+                        #neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
+                        #if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
+                        #edges.append((node, nodes[neighbor_id], 1))  # Assuming a cost of 1 for each edge
+                        
 
-        return Graph(edges=edges, nodes=nodes, bi_directional=True)
+        return Graph(edges=edges, nodes=nodes, bi_directional=False)
 
 
 
@@ -132,17 +142,17 @@ class Car(Agent):
             if x + 1 < self.model.width:
                 valid_neighbors.append((x+1, y))  # Right
                 if y + 1 < self.model.height:
-                    valid_neighbors.append((x+1, y-1))  # Diagonal down-right
-                if y - 1 >= 0:
                     valid_neighbors.append((x+1, y+1))  # Diagonal up-right
+                if y - 1 >= 0:
+                    valid_neighbors.append((x+1, y-1))  # Diagonal down-right
 
         elif direction == "Left":
             if x - 1 >= 0:
                 valid_neighbors.append((x-1, y))  # Left
                 if y + 1 < self.model.height:
-                    valid_neighbors.append((x-1, y+1))  # Diagonal down-left
+                    valid_neighbors.append((x-1, y+1))  # Diagonal up-left
                 if y - 1 >= 0:
-                    valid_neighbors.append((x-1, y-1))  # Diagonal up-left
+                    valid_neighbors.append((x-1, y-1))  # Diagonal down-left
 
         elif direction == "Up":
             if y + 1 < self.model.height:
