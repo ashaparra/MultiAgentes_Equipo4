@@ -3,6 +3,11 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.dijkstra import DijkstraFinder
 import random
+from pathfinding.core.graph import Graph
+from pathfinding.core.node import Node
+from pathfinding.core.graph import GraphNode
+
+
 
 class Car(Agent):
     # ... (existing __init__ and other methods)
@@ -19,7 +24,7 @@ class Car(Agent):
         self.steps_taken = 0
         self.destination = (5,4)
         self.direction = None
-        
+ 
     # def create_custom_grid(self):
     #     """
     #     Create a directed graph for pathfinding that takes into account the directions of the roads at neighbor cells.
@@ -67,163 +72,183 @@ class Car(Agent):
     #                         current_node.connections.append(grid.node(neighbor_x, neighbor_y))
 
     #     return grid
-    def create_custom_grid(self):
-        """
-        Create a directed graph for pathfinding that takes into account the directions of the roads at neighbor cells.
-        """
-        # Initialize the grid with all cells potentially walkable
-        grid = Grid(matrix=[[0 for _ in range(self.model.width)] for _ in range(self.model.height)])
+    def create_custom_graph(self):
+        # Create an empty dictionary to hold nodes, using their position as keys
+        nodes = {}
+        edges = []
 
-        # Iterate through each cell in the Mesa grid
+        # Instantiate GraphNode for each cell in the grid and store in the dictionary
         for x in range(self.model.width):
             for y in range(self.model.height):
-                current_pos = (x, y)
-                cell_contents = self.model.grid.get_cell_list_contents(current_pos)
-                current_node = grid.node(x, y)
-
-                # Initialize connections for this node
-                current_node.connections = []
-                #current_node.walkable = True
-
-                # Check for obstacles and set walkable property
+                cell_contents = self.model.grid.get_cell_list_contents((x, y))
                 if any(isinstance(content, Obstacle) for content in cell_contents):
-                    current_node.walkable = False
-                    continue
+                    continue  # Skip obstacles
 
-                # Get valid neighbors 
-                current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
-                if current_road:
-                    valid_neighbors = self.get_valid_neighbors(current_road.direction,x,y,grid)
-                
+                node_id = f"{x},{y}"
+                nodes[node_id] = GraphNode(node_id)
+                print(f"Node created: {node_id}")
+
+        # Connect GraphNode objects according to valid neighbors and road directions
+        for node_id, node in nodes.items():
+            x, y = map(int, node_id.split(','))
+            cell_contents = self.model.grid.get_cell_list_contents((x, y))
+            current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
+            if current_road:
+                valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
                 for neighbor_pos in valid_neighbors:
-                    neighbor_x, neighbor_y = neighbor_pos     
-                    neighbor_contents = self.model.grid.get_cell_list_contents((neighbor_x, neighbor_y))
-                    # Check if the neighbor cell is an obstacle
-                    if any(isinstance(content, Obstacle) for content in neighbor_contents):
-                        continue  # Skip this neighbor as it's an obstacle
-                    # Check the direction of the road at the neighbor cell
-                    neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-                    current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-                    if neighbor_road:
-                        # Adjust the logic to check if the neighbor cell's road allows entry from the current cell
-                        #print("neighbor_road.direction: ", neighbor_road.direction)
-                        if neighbor_road.direction == 'Right' and (x < neighbor_x):
-                            current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-                        elif neighbor_road.direction == 'Left' and (x > neighbor_x):
-                            current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-                        elif neighbor_road.direction == 'Up' and (y < neighbor_y):
-                            current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-                        elif neighbor_road.direction == 'Down' and (y > neighbor_y):
-                            current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-                    
-        return grid
+                    neighbor_id = f"{neighbor_pos[0]},{neighbor_pos[1]}"
+                    if neighbor_id in nodes:
+                        neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
+                        neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
+                        if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
+                            edges.append((node, nodes[neighbor_id], 1))  # Assuming a cost of 1 for each edge
+                            print(f"Edge created: {node_id} -> {neighbor_id}")
 
-    def get_valid_neighbors(self, direction,x,y, grid):
+        return Graph(edges=edges, nodes=nodes, bi_directional=True)
+
+
+
+
+    def is_road_compatible(self, current_direction, neighbor_direction, current_x, current_y, neighbor_x, neighbor_y):
+        # If the current road goes right, the neighbor must be to the right of the current road
+        if current_direction == "Right" and neighbor_x > current_x:
+            return True
+        # If the current road goes left, the neighbor must be to the left of the current road
+        elif current_direction == "Left" and neighbor_x < current_x:
+            return True
+        # If the current road goes up, the neighbor must be above the current road
+        elif current_direction == "Up" and neighbor_y > current_y:
+            return True
+        # If the current road goes down, the neighbor must be below the current road
+        elif current_direction == "Down" and neighbor_y < current_y:
+            return True
+        # If the directions do not match, return False
+        return False
+
+
+    def get_valid_neighbors(self, direction, x, y):
         valid_neighbors = []
         if direction == "Right":
             if x + 1 < self.model.width:
-                valid_neighbors.append(grid.node(x+1, y))  # Right
+                valid_neighbors.append((x+1, y))  # Right
                 if y + 1 < self.model.height:
-                    valid_neighbors.append(grid.node(x+1, y-1))  # Diagonal down-right
+                    valid_neighbors.append((x+1, y-1))  # Diagonal down-right
                 if y - 1 >= 0:
-                    valid_neighbors.append(grid.node(x+1, y+1))  # Diagonal up-right
+                    valid_neighbors.append((x+1, y+1))  # Diagonal up-right
 
         elif direction == "Left":
             if x - 1 >= 0:
-                valid_neighbors.append(grid.node(x-1, y))  # Left
+                valid_neighbors.append((x-1, y))  # Left
                 if y + 1 < self.model.height:
-                    valid_neighbors.append(grid.node(x-1, y+1))  # Diagonal down-left
+                    valid_neighbors.append((x-1, y+1))  # Diagonal down-left
                 if y - 1 >= 0:
-                    valid_neighbors.append(grid.node(x-1, y-1))  # Diagonal up-left
+                    valid_neighbors.append((x-1, y-1))  # Diagonal up-left
 
         elif direction == "Up":
             if y + 1 < self.model.height:
-                valid_neighbors.append(grid.node(x, y+1))  # Up
+                valid_neighbors.append((x, y+1))  # Up
                 if x + 1 < self.model.width:
-                    valid_neighbors.append(grid.node(x+1, y+1))  # Diagonal up-right
+                    valid_neighbors.append((x+1, y+1))  # Diagonal up-right
                 if x - 1 >= 0:
-                    valid_neighbors.append(grid.node(x-1, y+1))  # Diagonal up-left
+                    valid_neighbors.append((x-1, y+1))  # Diagonal up-left
 
         elif direction == "Down":
             if y - 1 >= 0:
-                valid_neighbors.append(grid.node(x, y-1))  # Down
+                valid_neighbors.append((x, y-1))  # Down
                 if x + 1 < self.model.width:
-                    valid_neighbors.append(grid.node(x+1, y-1))  # Diagonal down-right
+                    valid_neighbors.append((x+1, y-1))  # Diagonal down-right
                 if x - 1 >= 0:
-                    valid_neighbors.append(grid.node(x-1, y-1))  # Diagonal down-left
+                    valid_neighbors.append((x-1, y-1))  # Diagonal down-left
 
         return valid_neighbors
 
-    def print_grid_connections(self, grid):
+    def print_grid_connections(self, graph):
         """
-        Print the grid showing the possible connections for each node.
+        Print the graph showing the possible connections for each node.
         """
         # Dictionary to represent the direction of connections
         direction_symbols = {
             (1, 0): '→',  # Right
             (-1, 0): '←', # Left
-            (0, 1): '↑', # Up
-            (0, -1): '↓',  # Down
+            (0, 1): '↑',  # Up
+            (0, -1): '↓', # Down
+            (1, 1): '↗',  # Diagonal Up-Right
+            (-1, 1): '↖', # Diagonal Up-Left
+            (1, -1): '↘', # Diagonal Down-Right
+            (-1, -1): '↙', # Diagonal Down-Left
         }
 
-        for y in range(self.model.height-1, -1, -1):
+        for y in range(self.model.height - 1, -1, -1):
             row_str = ''
             for x in range(self.model.width):
-                node = grid.node(x, y)
-                if not node.walkable:
-                    row_str += 'X '  # Mark obstacles
+                node = graph.nodes.get((x, y))
+                if node:
+                    # For each node, check if there's a connection in a specific direction
+                    connections_str = ''
+                    for dx in [-1, 0, 1]:
+                        for dy in [-1, 0, 1]:
+                            if dx == 0 and dy == 0:
+                                continue  # Skip checking the node itself
+                            neighbor = graph.nodes.get((x + dx, y + dy))
+                            if neighbor and graph.is_connected(node, neighbor):
+                                connections_str += direction_symbols.get((dx, dy), '.')
+                            else:
+                                connections_str += '.'
+                    row_str += f'{connections_str} '
                 else:
-                    connections_str = ''.join([direction_symbols.get((conn.x - x, conn.y - y), '.') for conn in node.connections])
-                    row_str += f'{connections_str} ' if connections_str else '. '
+                    row_str += 'X '  # Mark non-existing nodes as obstacles
             print(row_str)
-        return
+            
+
 
     def move(self):
         """
-        Moves the car towards its destination using A* pathfinding, considering obstacles and road direction.
+        Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
         """
-        # Create a custom grid for this car agent
-        custom_grid = self.create_custom_grid()
-        self.print_grid_connections(custom_grid)
+        # Create a custom graph for this car agent
+        custom_graph = self.create_custom_graph()
 
-        # Convert the car's current position to a node on the custom grid
-        # Ensure self.pos is a tuple before using it
-        if isinstance(self.pos, tuple):
-            start_x, start_y = self.pos
-        else:
-            # If self.pos is not a tuple, extract x, y coordinates from the GridNode
-            start_x, start_y = self.pos.x, self.pos.y
+        # Ensure self.pos is a tuple representing the position of the car
+        start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
-        start_node = custom_grid.node(start_x, start_y)
-        end_node = custom_grid.node(self.destination[0], self.destination[1])
+        # Find the start and end nodes in the graph
+        start_node = custom_graph.nodes.get(start_pos)
+        end_pos = self.destination
+        end_node = custom_graph.nodes.get(end_pos)
 
-        # Create an A* pathfinder instance with no diagonal movement
-        finder = DijkstraFinder(diagonal_movement=DiagonalMovement.always )
+        if start_node and end_node:
+            # Create a Dijkstra pathfinder instance
+            finder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
 
-        # Find the path from start to end using the custom grid
-        print("Finding path...")
-        path, runs = finder.find_path(start_node, end_node, custom_grid)
-        print(path)
+            # Find the path from start to end using the custom graph
+            path, runs = finder.find_path(start_node, end_node, custom_graph)
 
-        # If a path exists, move the car along the path
-        if path and len(path) > 1:
-            #print(path)
-            next_step = path[1]  # Next step should be a tuple (x, y)
-            print( "Type:", type(next_step))
-            next_step_pos = (next_step.x, next_step.y) 
+             #Debug output
+            print(f"Path found: {path}")
+            print(f"Runs: {runs}")
 
-            traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
-            traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
-            if traffic_light:
-                if not traffic_light.state:
+            # If a path exists, move the car along the path
+            if path and len(path) > 1:
+                # The next step is the second node in the path, as the first is the start node
+                next_node = path[1]
+                next_step_pos = (next_node.x, next_node.y)
+
+                # Check for traffic lights at the next step position
+                traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
+                traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
+
+                # Check the state of the traffic light if there is one
+                if traffic_light and not traffic_light.state:
                     print("Traffic light is red, waiting...")
-                    return
-            self.model.grid.move_agent(self, next_step)
-            
-            # Manually update self.pos to be a tuple
-            self.pos = next_step
-        else:
-             print("No path found or path is too short.")
+                    return  # Do not move if the traffic light is red
+
+                # Move the car to the next step position
+                self.model.grid.move_agent(self, next_step_pos)
+
+                # Manually update self.pos to be a tuple after moving
+                self.pos = next_step_pos
+            else:
+                print("No path found or path is too short.")
 
     def step(self):
             """
