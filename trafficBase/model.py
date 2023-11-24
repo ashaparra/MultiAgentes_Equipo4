@@ -56,7 +56,7 @@ class CityModel(Model):
         for i in range(self.num_agents):
             destination=random.choice(self.destinations)    
             agent = Car(f"c_{i}", self, destination)
-            pos = (0,0)
+            pos = (1,0)
             self.grid.place_agent(agent, pos)
             self.schedule.add(agent)
 
