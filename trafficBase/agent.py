@@ -25,7 +25,7 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = (19,3)
+        self.destination = (12,4)
         self.direction = None
 
     def create_custom_graph(self):
@@ -69,6 +69,10 @@ class Car(Agent):
                             print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
                         neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
                         if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
+                            edges.append((node, nodes[neighbor_id], 1))
+                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                        neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
+                        if neighbor_destination:
                             edges.append((node, nodes[neighbor_id], 1))
                             print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
                 print()
@@ -154,9 +158,10 @@ class Car(Agent):
         #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
         # Find the start and end nodes in the graph
-        #end_id = self.destination[1] * self.model.width + self.destination[0]
+        end_id = self.destination[1] * self.model.width + self.destination[0]
+        print("End id: ", end_id)
         start_node = custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-        end_node = custom_graph.nodes.get(18)
+        end_node = custom_graph.nodes.get(end_id)
         
         print("Start node: ", start_node.node_id)
         print("End node: ", end_node.node_id)
