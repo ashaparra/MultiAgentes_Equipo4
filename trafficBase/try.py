@@ -1,7 +1,6 @@
+
 from mesa import Agent
 import networkx as nx
-print("version:",nx.__version__)
-import random
 class Car(Agent):
     def __init__(self, unique_id, model, destination):
         """
@@ -34,15 +33,14 @@ class Car(Agent):
             cell_contents = self.model.grid.get_cell_list_contents((x, y))
             current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
             if current_road:
-                valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)  # Define valid_neighbors here
-                for nex, ney in valid_neighbors:
-                    if (nex, ney) in G.nodes:
-                        neighbor_road = next((content for content in self.model.grid.get_cell_list_contents((nex, ney)) if isinstance(content, Road)), None)
-                        if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, nex, ney):
-                            G.add_edge(node, (nex, ney))  # Add edge if neighbor is valid and not an obstacle
+                valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
+                for nx, ny in valid_neighbors:
+                    if (nx, ny) in G.nodes:
+                        neighbor_road = next((content for content in self.model.grid.get_cell_list_contents((nx, ny)) if isinstance(content, Road)), None)
+                        if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, nx, ny):
+                            G.add_edge(node, (nx, ny))  # Add edge if neighbor is valid and not an obstacle
 
         return G
-
 
     def move(self):
         """
@@ -54,25 +52,10 @@ class Car(Agent):
 
         start_node = (self.pos[0], self.pos[1])
         end_node = self.destination
-        print(f"Start node: {start_node}, End node: {end_node}")
-
-        if start_node not in custom_graph.nodes or end_node not in custom_graph.nodes:
-            print("Start or end node not in graph")
-            return
-
-        # Print the graph connections
-        # self.print_graph_connections(custom_graph)
-
-        print("Graph nodes:", custom_graph.nodes)
-        print("Graph edges:", custom_graph.edges)
-        print("Graph nodes (first 10):", list(custom_graph.nodes)[None:10:None])
-        print("Graph edges (first 10):", list(custom_graph.edges())[:10])
-         
-
 
         try:
             # Find the path from start to end using networkx A* pathfinding
-            path = nx.astar_path(custom_graph, start_node, end_node, heuristic=self.manhattan_distance)
+            path = nx.astar_path(custom_graph, start_node, end_node, heuristic=self.euclidean_distance)
             print("Path found:", path)
 
             # The next step is the second node in the path, as the first is the start node
@@ -152,23 +135,11 @@ class Car(Agent):
         x2, y2 = n2
         return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
 
-    def manhattan_distance(self, n1, n2):
-        x1, y1 = n1
-        x2, y2 = n2
-        return abs(x1 - x2) + abs(y1 - y2)
-
-
     def step(self):
             """
             Step function called by the model, used to determine the car's actions.
             """
             self.move()
-    
-    def print_graph_connections(self, G):
-        print("Graph Connections:")
-        for node in G.nodes:
-            neighbors = list(G.neighbors(node))
-            print(f"{node}: {neighbors}")
 
 class Traffic_Light(Agent):
     """
