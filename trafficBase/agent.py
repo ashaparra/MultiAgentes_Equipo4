@@ -17,6 +17,38 @@ class Car(Agent):
         self.destination = (5,4)
         self.direction = None
 
+    # def create_networkx_graph(self):
+    #     G = nx.Graph()
+
+    #     # Node creation
+    #     for x in range(self.model.width):
+    #         for y in range(self.model.height):
+    #             cell_contents = self.model.grid.get_cell_list_contents((x, y))
+    #             if any(isinstance(content, Obstacle) for content in cell_contents):
+    #                 continue  # Skip obstacles
+    #             G.add_node((x, y))  # Add nodes representing grid positions
+
+    #     # Edge creation based on road directions and valid neighbors
+    #     for node in G.nodes:
+    #         x, y = node
+    #         cell_contents = self.model.grid.get_cell_list_contents((x, y))
+    #         current_road_or_light = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
+
+    #         if current_road_or_light:
+    #             # If it's a traffic light, infer direction from adjacent roads
+    #             if isinstance(current_road_or_light, Traffic_Light):
+    #                 inferred_direction = self.infer_traffic_light_direction(x, y)
+    #                 if inferred_direction is None:
+    #                     continue  # Skip if no direction can be inferred
+    #             else:
+    #                 inferred_direction = current_road_or_light.direction
+
+    #             valid_neighbors = self.get_valid_neighbors(inferred_direction, x, y)
+    #             for nex, ney in valid_neighbors:
+    #                 if (nex, ney) in G.nodes:
+    #                     G.add_edge(node, (nex, ney))  # Add edge
+
+    #     return G
     def create_networkx_graph(self):
         G = nx.Graph()
 
@@ -40,8 +72,21 @@ class Car(Agent):
                         neighbor_road = next((content for content in self.model.grid.get_cell_list_contents((nex, ney)) if isinstance(content, Road)), None)
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, nex, ney):
                             G.add_edge(node, (nex, ney))  # Add edge if neighbor is valid and not an obstacle
+                            
 
         return G
+
+    # def infer_traffic_light_direction(self, x, y):
+    #     # Check neighboring roads to infer the direction of the traffic light
+    #     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Up, Right, Down, Left
+    #     for dx, dy in directions:
+    #         nx, ny = x + dx, y + dy
+    #         if 0 <= nx < self.model.width and 0 <= ny < self.model.height:
+    #             neighbor_contents = self.model.grid.get_cell_list_contents((nx, ny))
+    #             neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
+    #             if neighbor_road:
+    #                 return neighbor_road.direction
+    #     return None
 
 
     def move(self):
@@ -61,12 +106,12 @@ class Car(Agent):
             return
 
         # Print the graph connections
-        # self.print_graph_connections(custom_graph)
+        self.print_graph_connections(custom_graph)
 
-        print("Graph nodes:", custom_graph.nodes)
-        print("Graph edges:", custom_graph.edges)
-        print("Graph nodes (first 10):", list(custom_graph.nodes)[None:10:None])
-        print("Graph edges (first 10):", list(custom_graph.edges())[:10])
+        # print("Graph nodes:", custom_graph.nodes)
+        # print("Graph edges:", custom_graph.edges)
+        # print("Graph nodes (first 10):", list(custom_graph.nodes)[None:10:None])
+        # print("Graph edges (first 10):", list(custom_graph.edges())[:10])
          
 
 
