@@ -25,7 +25,7 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = (5,4)
+        self.destination = (19,3)
         self.direction = None
 
     def create_custom_graph(self):
@@ -42,7 +42,7 @@ class Car(Agent):
 
                 node_id = y * self.model.width + x # Unique ID for each node
                 nodes[node_id] = GraphNode(node_id)
-                #print(f"Node created: {node_id}")
+                print(f"Node created: {node_id}")
 
         # Connect GraphNode objects according to valid neighbors and road directions
         for node_id, node in nodes.items():
@@ -52,7 +52,7 @@ class Car(Agent):
             y = node_id // self.model.width
 
             cell_contents = self.model.grid.get_cell_list_contents((x, y))
-            current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
+            current_road = next((content for content in cell_contents if isinstance(content,(Road, Traffic_Light))), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
                 print(f"Valid neighbors for {node_id}: {valid_neighbors}")
@@ -65,6 +65,10 @@ class Car(Agent):
                         neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
                         #if any(isinstance(content, Road) for content in neighbor_contents):
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
+                            edges.append((node, nodes[neighbor_id], 1))
+                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                        neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
+                        if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], 1))
                             print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
                 print()
@@ -133,43 +137,6 @@ class Car(Agent):
 
         return valid_neighbors
 
-    def print_grid_connections(self, graph):
-        """
-        Print the graph showing the possible connections for each node.
-        """
-        # Dictionary to represent the direction of connections
-        direction_symbols = {
-            (1, 0): '→',  # Right
-            (-1, 0): '←', # Left
-            (0, 1): '↑',  # Up
-            (0, -1): '↓', # Down
-            (1, 1): '↗',  # Diagonal Up-Right
-            (-1, 1): '↖', # Diagonal Up-Left
-            (1, -1): '↘', # Diagonal Down-Right
-            (-1, -1): '↙', # Diagonal Down-Left
-        }
-
-        for y in range(self.model.height - 1, -1, -1):
-            row_str = ''
-            for x in range(self.model.width):
-                node = graph.nodes.get((x, y))
-                if node:
-                    # For each node, check if there's a connection in a specific direction
-                    connections_str = ''
-                    for dx in [-1, 0, 1]:
-                        for dy in [-1, 0, 1]:
-                            if dx == 0 and dy == 0:
-                                continue  # Skip checking the node itself
-                            neighbor = graph.nodes.get((x + dx, y + dy))
-                            if neighbor and graph.is_connected(node, neighbor):
-                                connections_str += direction_symbols.get((dx, dy), '.')
-                            else:
-                                connections_str += '.'
-                    row_str += f'{connections_str} '
-                else:
-                    row_str += 'X '  # Mark non-existing nodes as obstacles
-            print(row_str)
-            
 
     def euclidean_distance(self):
         
@@ -187,8 +154,9 @@ class Car(Agent):
         #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
         # Find the start and end nodes in the graph
+        #end_id = self.destination[1] * self.model.width + self.destination[0]
         start_node = custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-        end_node = custom_graph.nodes.get(3)
+        end_node = custom_graph.nodes.get(18)
         
         print("Start node: ", start_node.node_id)
         print("End node: ", end_node.node_id)
@@ -242,7 +210,7 @@ class Traffic_Light(Agent):
     """
     Traffic light. Where the traffic lights are in the grid.
     """
-    def __init__(self, unique_id, model, state = False, timeToChange = 10):
+    def __init__(self, unique_id, model, state = False, direction="Rigth" ,timeToChange = 10):
         super().__init__(unique_id, model)
         """
         Creates a new Traffic light.
@@ -252,6 +220,7 @@ class Traffic_Light(Agent):
             state: Whether the traffic light is green or red
             timeToChange: After how many step should the traffic light change color 
         """
+        self.direction = direction
         self.state = state
         self.timeToChange = timeToChange
 
