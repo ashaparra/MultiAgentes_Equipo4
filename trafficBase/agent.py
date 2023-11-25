@@ -8,10 +8,6 @@ from pathfinding.core.node import Node
 from pathfinding.core.graph import GraphNode
 from pathfinding.finder.a_star import AStarFinder
 
-
-
-
-
 class Car(Agent):
     # ... (existing __init__ and other methods)
     def __init__(self, unique_id, model, destination):
@@ -25,7 +21,7 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = (12,4)
+        self.destination = destination
         self.direction = None
 
     def create_custom_graph(self):
@@ -64,13 +60,18 @@ class Car(Agent):
                             continue  # Skip obstacles
                         neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
                         #if any(isinstance(content, Road) for content in neighbor_contents):
+                        
+                        if self.is_diagonal_move(x, y, neighbor_pos[0], neighbor_pos[1]):
+                            weight = 1
+                        else:
+                            weight = 1    
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
-                            edges.append((node, nodes[neighbor_id], 1))
-                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                            edges.append((node, nodes[neighbor_id], weight))
+                            print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  ", end = " ")
                         neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
                         if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
-                            edges.append((node, nodes[neighbor_id], 1))
-                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                            edges.append((node, nodes[neighbor_id], weight))
+                            print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  " ,  end = " ")
                         neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
                         if neighbor_destination:
                             edges.append((node, nodes[neighbor_id], 1))
@@ -85,6 +86,11 @@ class Car(Agent):
 
         return Graph(edges=edges, nodes=nodes, bi_directional=False)
 
+    def is_diagonal_move(self, x1, y1, x2, y2):
+        """
+        Check if the move from (x1, y1) to (x2, y2) is diagonal.
+        """
+        return abs(x1 - x2) == 1 and abs(y1 - y2) == 1
 
 
 
