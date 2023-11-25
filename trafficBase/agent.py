@@ -34,26 +34,30 @@ class Car(Agent):
         edges = []
 
         # Instantiate GraphNode for each cell in the grid and store in the dictionary
-        for x in range(self.model.width):
-            for y in range(self.model.height):
+        for y in range(self.model.height):
+            for x in range(self.model.width):
                 cell_contents = self.model.grid.get_cell_list_contents((x, y))
                 if any(isinstance(content, Obstacle) for content in cell_contents):
                     continue  # Skip obstacles
 
-                node_id = f"{x},{y}"
+                node_id = y * self.model.width + x # Unique ID for each node
                 nodes[node_id] = GraphNode(node_id)
-                print(f"Node created: {node_id}")
+                #print(f"Node created: {node_id}")
 
         # Connect GraphNode objects according to valid neighbors and road directions
         for node_id, node in nodes.items():
-            x, y = map(int, node_id.split(','))
+            #x, y = map(int, node_id.split(','))
+            
+            x = node_id % self.model.width
+            y = node_id // self.model.width
+
             cell_contents = self.model.grid.get_cell_list_contents((x, y))
             current_road = next((content for content in cell_contents if isinstance(content, Road)), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
                 print(f"Valid neighbors for {node_id}: {valid_neighbors}")
                 for neighbor_pos in valid_neighbors:
-                    neighbor_id = f"{neighbor_pos[0]},{neighbor_pos[1]}"
+                    neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0] #f"{neighbor_pos[0]},{neighbor_pos[1]}"
                     if neighbor_id in nodes:
                         neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
                         if any(isinstance(content, Obstacle) for content in neighbor_contents):
@@ -62,7 +66,8 @@ class Car(Agent):
                         #if any(isinstance(content, Road) for content in neighbor_contents):
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], 1))
-                            print(f"Edge created: {node_id} -> {neighbor_id}")
+                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                print()
                         
                         
                         #neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
@@ -182,28 +187,33 @@ class Car(Agent):
         #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
         # Find the start and end nodes in the graph
-        start_node = custom_graph.nodes.get((f"{self.pos[0]},{self.pos[1]}"))
-        end_node = custom_graph.nodes.get((f"{self.destination[0]},{self.destination[1]}"))
+        start_node = custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        end_node = custom_graph.nodes.get(3)
         
-        print("End node: ", end_node)
-        print("Start node: ", start_node)
+        print("Start node: ", start_node.node_id)
+        print("End node: ", end_node.node_id)
         
         #if start_node and end_node:
         print("Finding path...")
         # Create a Dijkstra pathfinder instance
-        finder=AStarFinder(diagonal_movement=DiagonalMovement.always,heuristic=self.euclidean_distance)
+        #finder=AStarFinder(diagonal_movement=DiagonalMovement.always)
+        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
         # Find the path from start to end using the custom graph
-        path, runs = finder.find_path(start_node, end_node, custom_graph)
+        path, runs = dfinder.find_path(start_node, end_node, custom_graph)
 
         #Debug output
-        print(f"Path found: {path}")
+        print(f"Path found: {list(p.node_id for p in path)}")
         print(f"Runs: {runs}")
 
         # If a path exists, move the car along the path
         if path and len(path) > 1:
             # The next step is the second node in the path, as the first is the start node
             next_node = path[1]
-            next_step_pos = (next_node.x, next_node.y)
+
+            # Convert the next node's ID to a tuple representing the position of the car
+            nx = next_node.node_id % self.model.width
+            ny = next_node.node_id // self.model.width
+            next_step_pos = (nx, ny)
 
             # Check for traffic lights at the next step position
             traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
