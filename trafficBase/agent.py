@@ -6,6 +6,9 @@ import random
 from pathfinding.core.graph import Graph
 from pathfinding.core.node import Node
 from pathfinding.core.graph import GraphNode
+from pathfinding.finder.a_star import AStarFinder
+
+
 
 
 
@@ -24,54 +27,7 @@ class Car(Agent):
         self.steps_taken = 0
         self.destination = (5,4)
         self.direction = None
- 
-    # def create_custom_grid(self):
-    #     """
-    #     Create a directed graph for pathfinding that takes into account the directions of the roads at neighbor cells.
-    #     """
-    #     # Initialize the grid with all cells potentially walkable
-    #     grid = Grid(matrix=[[1 for _ in range(self.model.width)] for _ in range(self.model.height)])
 
-    #     # Iterate through each cell in the Mesa grid
-    #     for x in range(self.model.width):
-    #         for y in range(self.model.height):
-    #             current_pos = (x, y)
-    #             cell_contents = self.model.grid.get_cell_list_contents(current_pos)
-    #             current_node = grid.node(x, y)
-
-    #             # Initialize connections for this node
-    #             current_node.connections = []
-    #             current_node.walkable = True
-
-    #             # Check for obstacles and set walkable property
-    #             if any(isinstance(content, Obstacle) for content in cell_contents):
-    #                 current_node.walkable = False
-    #                 continue
-
-    #             # Get neighbors
-    #             neighbors = self.model.grid.get_neighborhood(current_pos, moore=True, include_center=False)
-    #             for neighbor_pos in neighbors:
-    #                 neighbor_x, neighbor_y = neighbor_pos
-    #                 neighbor_contents = self.model.grid.get_cell_list_contents((neighbor_x, neighbor_y))
-
-    #                 # Check if the neighbor cell is an obstacle
-    #                 # if any(isinstance(content, Obstacle) for content in neighbor_contents):
-    #                 #     continue  # Skip this neighbor as it's an obstacle
-
-    #                 # Check the direction of the road at the neighbor cell
-    #                 neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-    #                 if neighbor_road:
-    #                     # Check if the current cell can connect to the neighbor based on the neighbor's road direction
-    #                     if neighbor_road.direction == 'Right' and neighbor_x < x:
-    #                         current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-    #                     elif neighbor_road.direction == 'Left' and neighbor_x > x:
-    #                         current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-    #                     elif neighbor_road.direction == 'Up' and neighbor_y < y:
-    #                         current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-    #                     elif neighbor_road.direction == 'Down' and neighbor_y > y:
-    #                         current_node.connections.append(grid.node(neighbor_x, neighbor_y))
-
-    #     return grid
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
         nodes = {}
@@ -210,6 +166,10 @@ class Car(Agent):
             print(row_str)
             
 
+    def euclidean_distance(self):
+        
+        return ((self.pos[0] - self.destination[0])**2 + (self.pos[1] - self.destination[1])**2)**0.5
+    
 
     def move(self):
         """
@@ -219,46 +179,48 @@ class Car(Agent):
         custom_graph = self.create_custom_graph()
 
         # Ensure self.pos is a tuple representing the position of the car
-        start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
+        #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
         # Find the start and end nodes in the graph
-        start_node = custom_graph.nodes.get(start_pos)
-        end_pos = self.destination
-        end_node = custom_graph.nodes.get(end_pos)
+        start_node = custom_graph.nodes.get((f"{self.pos[0]},{self.pos[1]}"))
+        end_node = custom_graph.nodes.get((f"{self.destination[0]},{self.destination[1]}"))
+        
+        print("End node: ", end_node)
+        print("Start node: ", start_node)
+        
+        #if start_node and end_node:
+        print("Finding path...")
+        # Create a Dijkstra pathfinder instance
+        finder=AStarFinder(diagonal_movement=DiagonalMovement.always,heuristic=self.euclidean_distance)
+        # Find the path from start to end using the custom graph
+        path, runs = finder.find_path(start_node, end_node, custom_graph)
 
-        if start_node and end_node:
-            # Create a Dijkstra pathfinder instance
-            finder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
+        #Debug output
+        print(f"Path found: {path}")
+        print(f"Runs: {runs}")
 
-            # Find the path from start to end using the custom graph
-            path, runs = finder.find_path(start_node, end_node, custom_graph)
+        # If a path exists, move the car along the path
+        if path and len(path) > 1:
+            # The next step is the second node in the path, as the first is the start node
+            next_node = path[1]
+            next_step_pos = (next_node.x, next_node.y)
 
-             #Debug output
-            print(f"Path found: {path}")
-            print(f"Runs: {runs}")
+            # Check for traffic lights at the next step position
+            traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
+            traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
 
-            # If a path exists, move the car along the path
-            if path and len(path) > 1:
-                # The next step is the second node in the path, as the first is the start node
-                next_node = path[1]
-                next_step_pos = (next_node.x, next_node.y)
+            # Check the state of the traffic light if there is one
+            if traffic_light and not traffic_light.state:
+                print("Traffic light is red, waiting...")
+                return  # Do not move if the traffic light is red
 
-                # Check for traffic lights at the next step position
-                traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
-                traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
+            # Move the car to the next step position
+            self.model.grid.move_agent(self, next_step_pos)
 
-                # Check the state of the traffic light if there is one
-                if traffic_light and not traffic_light.state:
-                    print("Traffic light is red, waiting...")
-                    return  # Do not move if the traffic light is red
-
-                # Move the car to the next step position
-                self.model.grid.move_agent(self, next_step_pos)
-
-                # Manually update self.pos to be a tuple after moving
-                self.pos = next_step_pos
-            else:
-                print("No path found or path is too short.")
+            # Manually update self.pos to be a tuple after moving
+            self.pos = next_step_pos
+        else:
+            print("No path found or path is too short.")
 
     def step(self):
             """
