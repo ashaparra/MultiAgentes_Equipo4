@@ -5,6 +5,7 @@
 from flask import Flask, request, jsonify
 from randomAgents.model import RandomModel
 from randomAgents.agent import RandomAgent, ObstacleAgent
+from model import *
 
 # Size of the board:
 number_agents = 10
@@ -36,7 +37,8 @@ def getAgents():
     global randomModel
 
     if request.method == 'GET':
-        agentPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in randomModel.grid.coord_iter() if isinstance(a, RandomAgent)]
+        agentPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} 
+                          for a, (x, z) in randomModel.grid.coord_iter() if isinstance(a, RandomAgent)]
 
         return jsonify({'positions':agentPositions})
 
