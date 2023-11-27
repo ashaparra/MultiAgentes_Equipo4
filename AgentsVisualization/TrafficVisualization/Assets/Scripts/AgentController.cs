@@ -218,8 +218,8 @@ public class AgentController : MonoBehaviour
 
                     if(agents.ContainsKey(agent.id))
                     {
-                        Vector3 currentPos = new Vector3();
-                        if (currentPos.TryGetValue(agent.id, out currentPos))
+                        Vector3 currentPos;
+                        if (currPositions.TryGetValue(agent.id, out currentPos))
                         {
                             prevPositions[agent.id] = currentPos;
                             currPositions[agent.id] = newAgentPosition;
