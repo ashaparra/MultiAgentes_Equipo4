@@ -191,6 +191,9 @@ public class AgentController : MonoBehaviour
             // Once the configuration has been sent, it launches a coroutine to get the agents data.
             StartCoroutine(GetAgentsData());
             StartCoroutine(GetObstacleData());
+            StartCoroutine(GetTrafficLigthsData());
+            StartCoroutine(GetRoadsData());
+            StartCoroutine(GetDestinationsData());
         }
     }
 
