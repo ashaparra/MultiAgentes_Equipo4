@@ -79,16 +79,19 @@ public class AgentController : MonoBehaviour
     string serverUrl = "http://localhost:8585";
     string getAgentsEndpoint = "/getAgents";
     string getObstaclesEndpoint = "/getObstacles";
+    string getTrafficLigthsEndpoint = "/getTrafficLights";
+    string getRoadsEndpoint = "/getRoads";
+    string getDestinationsEndpoint = "/getDestinations";
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
-    AgentsData agentsData, obstacleData;
+    public AgentsData agentsData, obstacleData, trafficLigthsData, roadsData, destinationsData;
+    public int NAgents = 10, width = 10, height = 10;
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
 
     bool updated = false, started = false;
 
-    public GameObject agentPrefab, obstaclePrefab, floor;
-    public int NAgents, width, height;
+    public GameObject agentPrefab, obstaclePrefab, trafficLigthPrefab, roadPrefab, destinationPrefab;
     public float timeToUpdate = 5.0f;
     private float timer, dt;
 
@@ -96,14 +99,14 @@ public class AgentController : MonoBehaviour
     {
         agentsData = new AgentsData();
         obstacleData = new AgentsData();
+        trafficLigthsData = new AgentsData();
+        roadsData = new AgentsData();
+        destinationsData = new AgentsData();
 
         prevPositions = new Dictionary<string, Vector3>();
         currPositions = new Dictionary<string, Vector3>();
 
         agents = new Dictionary<string, GameObject>();
-
-        floor.transform.localScale = new Vector3((float)width/10, 1, (float)height/10);
-        floor.transform.localPosition = new Vector3((float)width/2-0.5f, 0, (float)height/2-0.5f);
         
         timer = timeToUpdate;
 
@@ -129,6 +132,7 @@ public class AgentController : MonoBehaviour
             // The positions are interpolated between the previous and current positions.
             foreach(var agent in currPositions)
             {
+                //Debug.Log(agent.Key);
                 Vector3 currentPosition = agent.Value;
                 Vector3 previousPosition = prevPositions[agent.Key];
 
@@ -139,7 +143,7 @@ public class AgentController : MonoBehaviour
                 if(direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
             }
 
-            // float t = (timer / timeToUpdate);
+            // float t = (timer / timeToUpdate);x
             // dt = t * t * ( 3f - 2f*t);
         }
     }
@@ -154,6 +158,7 @@ public class AgentController : MonoBehaviour
         else 
         {
             StartCoroutine(GetAgentsData());
+            // start semaforos
         }
     }
 
@@ -187,6 +192,9 @@ public class AgentController : MonoBehaviour
             // Once the configuration has been sent, it launches a coroutine to get the agents data.
             StartCoroutine(GetAgentsData());
             StartCoroutine(GetObstacleData());
+            StartCoroutine(GetTrafficLigthsData());
+            StartCoroutine(GetRoadsData());
+            StartCoroutine(GetDestinationsData());
         }
     }
 
@@ -203,23 +211,29 @@ public class AgentController : MonoBehaviour
         {
             // Once the data has been received, it is stored in the agentsData variable.
             // Then, it iterates over the agentsData.positions list to update the agents positions.
+            //Debug.Log(www.downloadHandler.text);
             agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
-
+            //Debug.Log(agentsData.positions.Count);
             foreach(AgentData agent in agentsData.positions)
             {
+                //Debug.Log(agent.id);
                 Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
 
-                    if(!started)
+                    if(agents.ContainsKey(agent.id))
                     {
-                        prevPositions[agent.id] = newAgentPosition;
-                        agents[agent.id] = Instantiate(agentPrefab, newAgentPosition, Quaternion.identity);
+                        Vector3 currentPos = new Vector3();
+                        if (currPositions.TryGetValue(agent.id, out currentPos))
+                        {
+                            Debug.Log(agent.id);
+                            prevPositions[agent.id] = currentPos;
+                            currPositions[agent.id] = newAgentPosition;
+                        }
                     }
                     else
                     {
-                        Vector3 currentPosition = new Vector3();
-                        if(currPositions.TryGetValue(agent.id, out currentPosition))
-                            prevPositions[agent.id] = currentPosition;
+                        prevPositions[agent.id] = newAgentPosition;
                         currPositions[agent.id] = newAgentPosition;
+                        agents[agent.id]=Instantiate(agentPrefab, newAgentPosition, Quaternion.identity);
                     }
             }
 
@@ -244,6 +258,67 @@ public class AgentController : MonoBehaviour
             foreach(AgentData obstacle in obstacleData.positions)
             {
                 Instantiate(obstaclePrefab, new Vector3(obstacle.x, obstacle.y, obstacle.z), Quaternion.identity);
+            }
+        }
+    }
+
+    IEnumerator GetTrafficLigthsData() 
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLigthsEndpoint);
+        yield return www.SendWebRequest();
+ 
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            trafficLigthsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(trafficLigthsData.positions);
+
+            foreach(AgentData trafficLigth in trafficLigthsData.positions)
+            {
+                Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                Instantiate(roadPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+            }
+        }
+    }
+
+    IEnumerator GetRoadsData() 
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getRoadsEndpoint);
+        yield return www.SendWebRequest();
+ 
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            roadsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(roadsData.positions);
+
+            foreach(AgentData road in roadsData.positions)
+            {
+                Instantiate(roadPrefab, new Vector3(road.x, road.y, road.z), Quaternion.identity);
+            }
+        }
+    }
+
+    IEnumerator GetDestinationsData() 
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getDestinationsEndpoint);
+        yield return www.SendWebRequest();
+ 
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            destinationsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(destinationsData.positions);
+
+            foreach(AgentData destination in destinationsData.positions)
+            {
+                Instantiate(destinationPrefab, new Vector3(destination.x, destination.y, destination.z), Quaternion.identity);
             }
         }
     }
