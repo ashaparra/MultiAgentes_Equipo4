@@ -21,7 +21,7 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = destination
+        self.destination = (11,14)
         self.direction = None
 
     def create_custom_graph(self):
@@ -157,6 +157,7 @@ class Car(Agent):
         """
         Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
         """
+
         # Create a custom graph for this car agent
         custom_graph = self.create_custom_graph()
 
@@ -171,6 +172,7 @@ class Car(Agent):
         
         print("Start node: ", start_node.node_id)
         print("End node: ", end_node.node_id)
+        print ("Destination: ", self.destination)
         
         #if start_node and end_node:
         print("Finding path...")
@@ -211,11 +213,24 @@ class Car(Agent):
         else:
             print("No path found or path is too short.")
 
+
+    def remove_car(self):
+        """
+        Removes the car from the grid.
+        """
+        if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+            print("Car arrived at destination and was removed from the grid.")
+
     def step(self):
             """
             Step function called by the model, used to determine the car's actions.
             """
-            self.move()
+            if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
+                self.remove_car()
+            else:
+                self.move()
 
 class Traffic_Light(Agent):
     """
