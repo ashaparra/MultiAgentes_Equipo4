@@ -79,7 +79,7 @@ public class AgentController : MonoBehaviour
     string serverUrl = "http://localhost:8585";
     string getAgentsEndpoint = "/getAgents";
     string getObstaclesEndpoint = "/getObstacles";
-    string getTrafficLigthsEndpoint = "/getTrafficLigths";
+    string getTrafficLigthsEndpoint = "/getTrafficLights";
     string getRoadsEndpoint = "/getRoads";
     string getDestinationsEndpoint = "/getDestinations";
     string sendConfigEndpoint = "/init";
@@ -218,8 +218,8 @@ public class AgentController : MonoBehaviour
 
                     if(agents.ContainsKey(agent.id))
                     {
-                        Vector3 currentPos;
-                        if (currPositions.TryGetValue(agent.id, out currentPos))
+                        Vector3 currentPos = new Vector3();
+                        if (currPosiftions.TryGetValue(agent.id, out currentPos))
                         {
                             prevPositions[agent.id] = currentPos;
                             currPositions[agent.id] = newAgentPosition;
