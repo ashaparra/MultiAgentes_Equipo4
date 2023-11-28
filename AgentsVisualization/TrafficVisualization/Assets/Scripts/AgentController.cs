@@ -132,6 +132,7 @@ public class AgentController : MonoBehaviour
             // The positions are interpolated between the previous and current positions.
             foreach(var agent in currPositions)
             {
+                //Debug.Log(agent.Key);
                 Vector3 currentPosition = agent.Value;
                 Vector3 previousPosition = prevPositions[agent.Key];
 
@@ -142,7 +143,7 @@ public class AgentController : MonoBehaviour
                 if(direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
             }
 
-            // float t = (timer / timeToUpdate);
+            // float t = (timer / timeToUpdate);x
             // dt = t * t * ( 3f - 2f*t);
         }
     }
@@ -210,17 +211,20 @@ public class AgentController : MonoBehaviour
         {
             // Once the data has been received, it is stored in the agentsData variable.
             // Then, it iterates over the agentsData.positions list to update the agents positions.
+            //Debug.Log(www.downloadHandler.text);
             agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
-
+            //Debug.Log(agentsData.positions.Count);
             foreach(AgentData agent in agentsData.positions)
             {
+                //Debug.Log(agent.id);
                 Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
 
                     if(agents.ContainsKey(agent.id))
                     {
                         Vector3 currentPos = new Vector3();
-                        if (currPosiftions.TryGetValue(agent.id, out currentPos))
+                        if (currPositions.TryGetValue(agent.id, out currentPos))
                         {
+                            Debug.Log(agent.id);
                             prevPositions[agent.id] = currentPos;
                             currPositions[agent.id] = newAgentPosition;
                         }
@@ -228,6 +232,7 @@ public class AgentController : MonoBehaviour
                     else
                     {
                         prevPositions[agent.id] = newAgentPosition;
+                        currPositions[agent.id] = newAgentPosition;
                         agents[agent.id]=Instantiate(agentPrefab, newAgentPosition, Quaternion.identity);
                     }
             }

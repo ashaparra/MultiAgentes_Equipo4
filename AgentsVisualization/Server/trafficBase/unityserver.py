@@ -7,7 +7,7 @@ from model import CityModel
 from agent import *
 
 # Size of the board:
-number_agents = 10
+number_agents = 4
 cityModel = None
 currentStep = 0
 
