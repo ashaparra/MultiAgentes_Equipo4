@@ -184,9 +184,9 @@ class Car(Agent):
             # print(f"Runs: {runs}")
 
         # If a path exists, move the car along the path
-        if path and len(path) > 1:
+        if self.path and len(self.path) > 1:
             # The next step is the second node in the path, as the first is the start node
-            next_node = path[1]
+            next_node = self.path[1]
             self.path.pop(0)
 
             # Convert the next node's ID to a tuple representing the position of the car
