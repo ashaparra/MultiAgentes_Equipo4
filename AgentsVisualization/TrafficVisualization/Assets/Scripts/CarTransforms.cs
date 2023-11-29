@@ -16,6 +16,7 @@ public class CarTransforms : MonoBehaviour
     [Header ("Movement interpolation")]
     [SerializeField] Vector3 startPosition= new Vector3(0,0,0);
     [SerializeField] Vector3 endPosition= new Vector3(0,0,0);
+    [SerializeField] Vector3 lastPosition= new Vector3(0,0,0);
     Mesh mesh;
     Vector3[] baseVertices;
     Vector3[] newVertices;
@@ -26,6 +27,7 @@ public class CarTransforms : MonoBehaviour
     float timer = 0.0f;
     float timeToUpdate = 1.0f;
     float dt = 0.0f;
+    private float lastRotationYDeg;
 
 
     void Start()
@@ -70,14 +72,15 @@ public class CarTransforms : MonoBehaviour
         dt = 1.0f - (timer / timeToUpdate);
         DoTransform(NewTarget(startPosition, endPosition, dt));
     }
-    public void SetMove(Vector3 targetPosition,float dt){
+    public void SetMove(Vector3 targetPosition){
         // DoTransform(NewTarget(currentPosition, targetPosition, dt));
         timer = timeToUpdate;
-        if (endPosition != targetPosition){
-            startPosition = endPosition;
-            endPosition = targetPosition;
-        }
+        startPosition = endPosition;
+        endPosition = targetPosition;
         
+    }
+    public void SetTime(float time){
+        timeToUpdate = time;
     }
 
     void DoTransform(Vector3 position)
@@ -86,9 +89,17 @@ public class CarTransforms : MonoBehaviour
         //Posicionar el carro volteando a 0 0 0 originalmente (frente)
         Matrix4x4 orientCar= HW_Transforms.RotateMat(180, AXIS.Y);
         //Calcular rotacion para el carro en base a donde se esta moviendo en x y y
-        float rotateYRad = Mathf.Atan2(endPosition.z - startPosition.z, endPosition.x - startPosition.x);
-        //Convertir de radianes a grados
-        float rotateYDeg = rotateYRad * Mathf.Rad2Deg;
+        float rotateYDeg;
+        if (startPosition != endPosition)
+        {
+                float rotateYRad = Mathf.Atan2(endPosition.z - startPosition.z, endPosition.x - startPosition.x);
+                rotateYDeg = rotateYRad * Mathf.Rad2Deg;
+                lastRotationYDeg = rotateYDeg; // Update the last known rotation
+        }
+        else
+            {
+                rotateYDeg = lastRotationYDeg; // Use the last known rotation
+            }
         //Crear matriz de rotacion en y
         Matrix4x4 rotateY = HW_Transforms.RotateMat(rotateYDeg, AXIS.Y);
         
@@ -110,6 +121,7 @@ public class CarTransforms : MonoBehaviour
         //Actualizar mesh
         mesh.vertices = newVertices;
         mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
         
         //Llamar a transformaciones para las llantas
         DoTransformWheels(composite);
@@ -138,6 +150,7 @@ public class CarTransforms : MonoBehaviour
             //Actualizar mesh de la llanta
             wheelsMeshes[wheel].vertices = newWheelsVertices[wheel];
             wheelsMeshes[wheel].RecalculateNormals();
+            wheelsMeshes[wheel].RecalculateBounds();
         }  
     }
 }

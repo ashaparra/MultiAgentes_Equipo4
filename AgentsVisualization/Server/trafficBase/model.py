@@ -20,7 +20,7 @@ class CityModel(Model):
         self.destinations=[]
 
         # Load the map file. The map file is a text file where each character represents an agent.
-        with open('./city_files/2022_base.txt') as baseFile:
+        with open('./city_files/2023_base.txt') as baseFile:
             lines = baseFile.readlines()
             self.width = len(lines[0])-1
             self.height = len(lines)
@@ -61,7 +61,7 @@ class CityModel(Model):
             for i in range(0, 1):
                 destination = random.choice(self.destinations)
                 positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
-                pos = positions[i]
+                pos = (self.width - 1, 0)
 
                 # Check if the selected cell is already occupied by a car agent
                 if not any(isinstance(agent, Car) for agent in self.grid.get_cell_list_contents([pos])):
@@ -72,7 +72,7 @@ class CityModel(Model):
 
         self.step_last_car += 1
 
-        if self.step_last_car >= 3:
+        if self.step_last_car >= 6:
             self.step_last_car = 0
 
 

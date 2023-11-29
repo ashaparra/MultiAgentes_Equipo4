@@ -31,6 +31,35 @@ public class AgentData
         this.y = y;
         this.z = z;
     }
+
+}
+
+[Serializable]
+public class TrafficLigthData
+{
+    /*
+    The TrafficLigth class is used to store the data of each agent.
+    
+    Attributes:
+        id (string): The id of the agent.
+        x (float): The x coordinate of the agent.
+        y (float): The y coordinate of the agent.
+        z (float): The z coordinate of the agent.
+        state (string): The state of the agent.
+    */
+    public string id;
+    public float x, y, z;
+    public bool state;
+
+    public TrafficLigthData(string id, float x, float y, float z, bool state)
+    {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.state =state;
+    }
+
 }
 
 [Serializable]
@@ -47,6 +76,20 @@ public class AgentsData
 
     public AgentsData() => this.positions = new List<AgentData>();
 }
+
+[Serializable]
+public class TrafficLightsData{
+    /*
+    The AgentsData class is used to store the data of all the agents.
+
+    Attributes:
+        positions (list): A list of AgentData objects.
+    */
+    public List<TrafficLigthData> positions;
+
+    public TrafficLightsData() => this.positions = new List<TrafficLigthData>();
+}
+
 
 public class AgentController : MonoBehaviour
 {
@@ -79,15 +122,17 @@ public class AgentController : MonoBehaviour
     string serverUrl = "http://localhost:8585";
     string getAgentsEndpoint = "/getAgents";
     string getObstaclesEndpoint = "/getObstacles";
-    string getTrafficLigthsEndpoint = "/getTrafficLights";
+    string getTrafficLightsEndpoint = "/getTrafficLights";
     string getRoadsEndpoint = "/getRoads";
     string getDestinationsEndpoint = "/getDestinations";
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
-    public AgentsData agentsData, obstacleData, trafficLigthsData, roadsData, destinationsData;
+    public AgentsData agentsData, obstacleData, roadsData, destinationsData;
+    public TrafficLightsData trafficLightsData;
     public int NAgents = 10, width = 10, height = 10;
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
+    Dictionary<string, GameObject> trafficLights;
 
     bool updated = false, started = false;
 
@@ -99,7 +144,7 @@ public class AgentController : MonoBehaviour
     {
         agentsData = new AgentsData();
         obstacleData = new AgentsData();
-        trafficLigthsData = new AgentsData();
+        trafficLightsData = new TrafficLightsData();
         roadsData = new AgentsData();
         destinationsData = new AgentsData();
 
@@ -107,6 +152,7 @@ public class AgentController : MonoBehaviour
         currPositions = new Dictionary<string, Vector3>();
 
         agents = new Dictionary<string, GameObject>();
+        trafficLights = new Dictionary<string, GameObject>();
         
         timer = timeToUpdate;
 
@@ -138,6 +184,13 @@ public class AgentController : MonoBehaviour
                 //agents[agent.Key].GetComponent<CarTransforms>().SetMove(prevPos, currPos, dt);
                 
             }
+            foreach(var tl in trafficLightsData.positions)
+            {
+                if(trafficLights.ContainsKey(tl.id))
+                {
+                    trafficLights[tl.id].GetComponent<TrafficLight>().SetState(tl.state);
+                }
+            }
 
             // float t = (timer / timeToUpdate);x
             // dt = t * t * ( 3f - 2f*t);
@@ -154,6 +207,7 @@ public class AgentController : MonoBehaviour
         else 
         {
             StartCoroutine(GetAgentsData());
+            StartCoroutine(GetTrafficLightsData());
             // start semaforos
         }
     }
@@ -188,7 +242,7 @@ public class AgentController : MonoBehaviour
             // Once the configuration has been sent, it launches a coroutine to get the agents data.
             StartCoroutine(GetAgentsData());
             StartCoroutine(GetObstacleData());
-            StartCoroutine(GetTrafficLigthsData());
+            StartCoroutine(GetTrafficLightsData());
             StartCoroutine(GetRoadsData());
             StartCoroutine(GetDestinationsData());
         }
@@ -221,13 +275,14 @@ public class AgentController : MonoBehaviour
                         Vector3 currentPos = new Vector3();
                         
                             Debug.Log(agent.id + " " + currentPos + " " + newAgentPosition);
-                            agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition,timer);
+                            agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+                            agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
 
                     }
                     else
                     {
                         agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
-                        agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition,timer);
+                        agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
                     }
             }
 
@@ -256,26 +311,33 @@ public class AgentController : MonoBehaviour
         }
     }
 
-    IEnumerator GetTrafficLigthsData() 
+    IEnumerator GetTrafficLightsData() 
     {
-        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLigthsEndpoint);
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLightsEndpoint);
         yield return www.SendWebRequest();
  
         if (www.result != UnityWebRequest.Result.Success)
             Debug.Log(www.error);
         else 
         {
-            trafficLigthsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+            trafficLightsData = JsonUtility.FromJson<TrafficLightsData>(www.downloadHandler.text);
 
-            Debug.Log(trafficLigthsData.positions);
+            Debug.Log(trafficLightsData.positions);
 
-            foreach(AgentData trafficLigth in trafficLigthsData.positions)
+            foreach(TrafficLigthData trafficLigth in trafficLightsData.positions)
             {
-                Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                if(trafficLights.ContainsKey(trafficLigth.id))
+                {
+                    trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetState(trafficLigth.state);
+                }
+                else
+                {
+                trafficLights[trafficLigth.id]=Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
                 Instantiate(roadPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
-            }
+                }
         }
-    }
+    } 
+}
 
     IEnumerator GetRoadsData() 
     {
