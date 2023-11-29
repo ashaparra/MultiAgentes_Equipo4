@@ -132,15 +132,11 @@ public class AgentController : MonoBehaviour
             // The positions are interpolated between the previous and current positions.
             foreach(var agent in currPositions)
             {
-                //Debug.Log(agent.Key);
-                Vector3 currentPosition = agent.Value;
-                Vector3 previousPosition = prevPositions[agent.Key];
+                Vector3 prevPos = prevPositions[agent.Key];
+                Vector3 currPos = agent.Value;
 
-                Vector3 interpolated = Vector3.Lerp(previousPosition, currentPosition, dt);
-                Vector3 direction = currentPosition - interpolated;
-
-                agents[agent.Key].transform.localPosition = interpolated;
-                if(direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
+                agents[agent.Key].GetComponent<CarTransforms>().SetMove(prevPos, currPos, dt);
+                
             }
 
             // float t = (timer / timeToUpdate);x
@@ -233,7 +229,7 @@ public class AgentController : MonoBehaviour
                     {
                         prevPositions[agent.id] = newAgentPosition;
                         currPositions[agent.id] = newAgentPosition;
-                        agents[agent.id]=Instantiate(agentPrefab, newAgentPosition, Quaternion.identity);
+                        agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
                     }
             }
 
