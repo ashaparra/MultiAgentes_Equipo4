@@ -171,17 +171,16 @@ class Car(Agent):
         """
 
         # Create a custom graph for this car agent
-        # custom_graph = self.create_custom_graph()
         for node in self.custom_graph.nodes.values():
             node.cleanup()
         
         if not self.path:
             self.getPath()
+        
         # If a path exists, move the car along the path
         if self.path and len(self.path) > 1:
             # The next step is the second node in the path, as the first is the start node
             next_node = self.path[1]
-            self.path.pop(0)
 
             # Convert the next node's ID to a tuple representing the position of the car
             nx = next_node.node_id % self.model.width
@@ -204,11 +203,12 @@ class Car(Agent):
 
             # Move the car to the next step position
             self.model.grid.move_agent(self, next_step_pos)
+            self.path.pop(0)
 
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
         else:
-            self.getPath()
+            #self.getPath()
             print("No path found or path is too short.")
 
 
