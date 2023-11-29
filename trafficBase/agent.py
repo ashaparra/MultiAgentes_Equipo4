@@ -24,6 +24,7 @@ class Car(Agent):
         self.destination = destination
         self.direction = None
         self.custom_graph = self.create_custom_graph()
+        self.path = []
 
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
@@ -164,39 +165,29 @@ class Car(Agent):
         for node in self.custom_graph.nodes.values():
             node.cleanup()
         
+        if not self.path:
+            # Ensure self.pos is a tuple representing the position of the car
+            #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
+
+            # Find the start and end nodes in the graph
+            end_id = self.destination[1] * self.model.width + self.destination[0]
+            # print("End id: ", end_id)
+            start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+            end_node = self.custom_graph.nodes.get(end_id)
             
-        # Ensure self.pos is a tuple representing the position of the car
-        #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
-
-        # Find the start and end nodes in the graph
-        end_id = self.destination[1] * self.model.width + self.destination[0]
-        # print("End id: ", end_id)
-        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-        end_node = self.custom_graph.nodes.get(end_id)
-        
-        # print("Start node: ", start_node.node_id)
-        # print("End node: ", end_node.node_id)
-        # print("Start: ", self.pos)
-        # print ("Destination: ", self.destination)
-        # print("width",self.model.width)
-        # print("Height",self.model.height)
-        
-        #if start_node and end_node:
-        # print("Finding path...")
-        # Create a Dijkstra pathfinder instance
-        #finder=AStarFinder(diagonal_movement=DiagonalMovement.always)
-        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
-        # Find the path from start to end using the custom graph
-        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
-
-        #Debug output
-        # print(f"Path found: {list(p.node_id for p in path)}")
-        # print(f"Runs: {runs}")
+            dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
+            # Find the path from start to end using the custom graph
+            path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
+            self.path = path
+            #Debug output
+            # print(f"Path found: {list(p.node_id for p in path)}")
+            # print(f"Runs: {runs}")
 
         # If a path exists, move the car along the path
         if path and len(path) > 1:
             # The next step is the second node in the path, as the first is the start node
             next_node = path[1]
+            self.path.pop(0)
 
             # Convert the next node's ID to a tuple representing the position of the car
             nx = next_node.node_id % self.model.width
