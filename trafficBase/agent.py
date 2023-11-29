@@ -21,8 +21,9 @@ class Car(Agent):
         self.visited_cells = []
         self.position_stack = []
         self.steps_taken = 0
-        self.destination = (11,14)
+        self.destination = destination
         self.direction = None
+        self.custom_graph = self.create_custom_graph()
 
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
@@ -159,20 +160,26 @@ class Car(Agent):
         """
 
         # Create a custom graph for this car agent
-        custom_graph = self.create_custom_graph()
-
+        # custom_graph = self.create_custom_graph()
+        for node in self.custom_graph.nodes.values():
+            node.cleanup()
+        
+            
         # Ensure self.pos is a tuple representing the position of the car
         #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
 
         # Find the start and end nodes in the graph
         end_id = self.destination[1] * self.model.width + self.destination[0]
         print("End id: ", end_id)
-        start_node = custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-        end_node = custom_graph.nodes.get(end_id)
+        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        end_node = self.custom_graph.nodes.get(end_id)
         
         print("Start node: ", start_node.node_id)
         print("End node: ", end_node.node_id)
+        print("Start: ", self.pos)
         print ("Destination: ", self.destination)
+        print("width",self.model.width)
+        print("Height",self.model.height)
         
         #if start_node and end_node:
         print("Finding path...")
@@ -180,7 +187,7 @@ class Car(Agent):
         #finder=AStarFinder(diagonal_movement=DiagonalMovement.always)
         dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
         # Find the path from start to end using the custom graph
-        path, runs = dfinder.find_path(start_node, end_node, custom_graph)
+        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
 
         #Debug output
         print(f"Path found: {list(p.node_id for p in path)}")
