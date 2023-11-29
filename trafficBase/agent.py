@@ -38,55 +38,44 @@ class Car(Agent):
                 if any(isinstance(content, Obstacle) for content in cell_contents):
                     continue  # Skip obstacles
 
-                node_id = y * self.model.width + x # Unique ID for each node
+                node_id = y * self.model.width + x  # Unique ID for each node
                 nodes[node_id] = GraphNode(node_id)
-                # print(f"Node created: {node_id}")
 
         # Connect GraphNode objects according to valid neighbors and road directions
         for node_id, node in nodes.items():
-            #x, y = map(int, node_id.split(','))
-            
             x = node_id % self.model.width
             y = node_id // self.model.width
 
             cell_contents = self.model.grid.get_cell_list_contents((x, y))
-            current_road = next((content for content in cell_contents if isinstance(content,(Road, Traffic_Light))), None)
+            current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
-                # print(f"Valid neighbors for {node_id}: {valid_neighbors}")
                 for neighbor_pos in valid_neighbors:
-                    neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0] #f"{neighbor_pos[0]},{neighbor_pos[1]}"
+                    neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0]
                     if neighbor_id in nodes:
                         neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
                         if any(isinstance(content, Obstacle) for content in neighbor_contents):
                             continue  # Skip obstacles
+
                         neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-                        #if any(isinstance(content, Road) for content in neighbor_contents):
-                        
+                        neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
+                        neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
+
+                        # Adjust weight for diagonal moves
                         if self.is_diagonal_move(x, y, neighbor_pos[0], neighbor_pos[1]):
-                            weight = 1
+                            weight = 1.3  # Higher weight for diagonal moves
                         else:
-                            weight = 1    
+                            weight = 1    # Normal weight for straight moves
+
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  ", end = " ")
-                        neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
                         if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  " ,  end = " ")
-                        neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
                         if neighbor_destination:
-                            edges.append((node, nodes[neighbor_id], 1))
-                            # print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
-                # print()
-                        
-                        
-                        #neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-                        #if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
-                        #edges.append((node, nodes[neighbor_id], 1))  # Assuming a cost of 1 for each edge
-                        
+                            edges.append((node, nodes[neighbor_id], 1))  # Keep weight as 1 for destinations
 
         return Graph(edges=edges, nodes=nodes, bi_directional=False)
+
 
     def is_diagonal_move(self, x1, y1, x2, y2):
         """
