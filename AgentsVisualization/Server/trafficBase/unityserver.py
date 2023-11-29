@@ -25,8 +25,11 @@ def getAgents():
 
     if request.method == 'GET':
         agentPositions = [{"id": str(car.unique_id), "x": x, "y":1, "z":z} 
-                          for x in range (cityModel.width) for z in range (cityModel.height)
-                          for car in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(car, Car)]
+                        #   for x in range (cityModel.width) for z in range (cityModel.height)
+                        #   for car in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(car, Car)]
+                            for cells, (x,z) in cityModel.grid.coord_iter() 
+                            for car in cells if isinstance(car, Car)
+                                ]
 
         return jsonify({'positions':agentPositions})
 
@@ -36,8 +39,8 @@ def getObstacles():
 
     if request.method == 'GET':
         obstaclePositions = [{"id": str(obs.unique_id), "x": x, "y":1, "z":z} 
-                            for x in range (cityModel.width) for z in range (cityModel.height)
-                            for obs in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(obs, Obstacle)]
+                            for cells, (x,z) in cityModel.grid.coord_iter() 
+                            for obs in cells if isinstance(obs, Obstacle)]
 
         return jsonify({'positions':obstaclePositions})
     
@@ -46,9 +49,9 @@ def getTrafficLights():
     global cityModel
 
     if request.method == 'GET':
-        trafficLightPositions = [{"id": str(tl.unique_id), "x": x, "y":1, "z":z} 
-                            for x in range (cityModel.width) for z in range (cityModel.height)
-                            for tl in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(tl, Traffic_Light)]
+        trafficLightPositions = [{"id": str(tl.unique_id), "x": x, "y":1, "z":z, "state": tl.state} 
+                                for cells, (x,z) in cityModel.grid.coord_iter() 
+                                for tl in cells if isinstance(tl, Traffic_Light)]
 
         return jsonify({'positions':trafficLightPositions})
 
@@ -58,8 +61,8 @@ def getDestinations():
 
     if request.method == 'GET':
         destinationPositions = [{"id": str(d.unique_id), "x": x, "y":1, "z":z} 
-                            for x in range (cityModel.width) for z in range (cityModel.height)
-                            for d in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(d, Destination)]
+                                for cells, (x,z) in cityModel.grid.coord_iter()
+                                for d in cells if isinstance(d, Destination)]
 
         return jsonify({'positions':destinationPositions})
     
@@ -69,8 +72,8 @@ def getRoads():
 
     if request.method == 'GET':
         roadPositions = [{"id": str(r.unique_id), "x": x, "y":1, "z":z} 
-                            for x in range (cityModel.width) for z in range (cityModel.height)
-                            for r in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(r, Road)]
+                        for cells, (x,z) in cityModel.grid.coord_iter() 
+                        for r in cells if isinstance(r, Road)]
 
         return jsonify({'positions':roadPositions})
 
