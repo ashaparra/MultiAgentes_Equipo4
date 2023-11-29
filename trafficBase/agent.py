@@ -154,7 +154,17 @@ class Car(Agent):
         
         return ((self.pos[0] - self.destination[0])**2 + (self.pos[1] - self.destination[1])**2)**0.5
     
-
+    def getPath(self):
+        end_id = self.destination[1] * self.model.width + self.destination[0]
+            # print("End id: ", end_id)
+        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        end_node = self.custom_graph.nodes.get(end_id)
+            
+        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
+        # Find the path from start to end using the custom graph
+        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
+        self.path = path
+    
     def move(self):
         """
         Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
@@ -166,23 +176,7 @@ class Car(Agent):
             node.cleanup()
         
         if not self.path:
-            # Ensure self.pos is a tuple representing the position of the car
-            #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
-
-            # Find the start and end nodes in the graph
-            end_id = self.destination[1] * self.model.width + self.destination[0]
-            # print("End id: ", end_id)
-            start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-            end_node = self.custom_graph.nodes.get(end_id)
-            
-            dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
-            # Find the path from start to end using the custom graph
-            path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
-            self.path = path
-            #Debug output
-            # print(f"Path found: {list(p.node_id for p in path)}")
-            # print(f"Runs: {runs}")
-
+            self.getPath()
         # If a path exists, move the car along the path
         if self.path and len(self.path) > 1:
             # The next step is the second node in the path, as the first is the start node
@@ -214,6 +208,7 @@ class Car(Agent):
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
         else:
+            self.getPath()
             print("No path found or path is too short.")
 
 
