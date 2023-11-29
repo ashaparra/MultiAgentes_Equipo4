@@ -176,6 +176,7 @@ class Car(Agent):
             ny = next_node.node_id // self.model.width
             next_step_pos = (nx, ny)
             car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
+            self.get_traffic_neighbors()
 
             if any(isinstance(content, Car) for content in car_agent_content):
                 # print("Car in front, waiting...")
@@ -200,7 +201,43 @@ class Car(Agent):
             #self.getPath()
             print("No path found or path is too short.")
 
-
+    def get_traffic_neighbors(self):
+        """
+        Get the neighbors of the car's current position that are traffic lights.
+        """
+        cell_contents = self.model.grid.get_cell_list_contents((self.pos[0], self.pos[1]))
+        current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
+        if current_road:
+            valid_neighbors = self.get_valid_neighbors(current_road.direction, self.pos[0], self.pos[1])
+            extended_neighbors = []
+            if current_road.direction == "Right":
+                for neighbor_pos in valid_neighbors:
+                    if neighbor_pos[0] + 1 < self.model.width:
+                        extended_neighbors.append((neighbor_pos[0]+1, neighbor_pos[1]))
+                    if neighbor_pos[0] + 2 < self.model.width:
+                        extended_neighbors.append((neighbor_pos[0]+2, neighbor_pos[1]))
+            if current_road.direction == "Left":
+                for neighbor_pos in valid_neighbors:
+                    if neighbor_pos[0] - 1 >= 0:
+                        extended_neighbors.append((neighbor_pos[0]-1, neighbor_pos[1]))
+                    if neighbor_pos[0] - 2 >= 0:
+                        extended_neighbors.append((neighbor_pos[0]-2, neighbor_pos[1]))
+            if current_road.direction == "Up":
+                for neighbor_pos in valid_neighbors:
+                    if neighbor_pos[1] + 1 < self.model.height:
+                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+1))
+                    if neighbor_pos[1] + 2 < self.model.height:
+                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+2))
+            if current_road.direction == "Down":
+                for neighbor_pos in valid_neighbors:
+                    if neighbor_pos[1] - 1 >= 0:
+                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-1))
+                    if neighbor_pos[1] - 2 >= 0:
+                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-2))
+        
+            # Combine original and extended neighbors
+            all_neighbors = valid_neighbors + extended_neighbors
+            print("cell:",self.pos, "neighbors:", all_neighbors)
     def remove_car(self):
         """
         Removes the car from the grid.
