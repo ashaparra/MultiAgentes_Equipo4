@@ -40,6 +40,8 @@ def agent_portrayal(agent):
         portrayal["Layer"] = 0
         portrayal["w"] = 0.8
         portrayal["h"] = 0.8
+        portrayal["text"] = agent.unique_id 
+        portrayal["text_color"] = "white"
 
 
     return portrayal

@@ -24,6 +24,7 @@ class Car(Agent):
         self.destination = destination
         self.direction = None
         self.custom_graph = self.create_custom_graph()
+        self.path = []
 
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
@@ -37,55 +38,44 @@ class Car(Agent):
                 if any(isinstance(content, Obstacle) for content in cell_contents):
                     continue  # Skip obstacles
 
-                node_id = y * self.model.width + x # Unique ID for each node
+                node_id = y * self.model.width + x  # Unique ID for each node
                 nodes[node_id] = GraphNode(node_id)
-                # print(f"Node created: {node_id}")
 
         # Connect GraphNode objects according to valid neighbors and road directions
         for node_id, node in nodes.items():
-            #x, y = map(int, node_id.split(','))
-            
             x = node_id % self.model.width
             y = node_id // self.model.width
 
             cell_contents = self.model.grid.get_cell_list_contents((x, y))
-            current_road = next((content for content in cell_contents if isinstance(content,(Road, Traffic_Light))), None)
+            current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
-                # print(f"Valid neighbors for {node_id}: {valid_neighbors}")
                 for neighbor_pos in valid_neighbors:
-                    neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0] #f"{neighbor_pos[0]},{neighbor_pos[1]}"
+                    neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0]
                     if neighbor_id in nodes:
                         neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
                         if any(isinstance(content, Obstacle) for content in neighbor_contents):
                             continue  # Skip obstacles
+
                         neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-                        #if any(isinstance(content, Road) for content in neighbor_contents):
-                        
+                        neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
+                        neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
+
+                        # Adjust weight for diagonal moves
                         if self.is_diagonal_move(x, y, neighbor_pos[0], neighbor_pos[1]):
-                            weight = 1
+                            weight = 1.3  # Higher weight for diagonal moves
                         else:
-                            weight = 1    
+                            weight = 1    # Normal weight for straight moves
+
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  ", end = " ")
-                        neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
                         if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  " ,  end = " ")
-                        neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
                         if neighbor_destination:
-                            edges.append((node, nodes[neighbor_id], 1))
-                            # print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
-                # print()
-                        
-                        
-                        #neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
-                        #if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
-                        #edges.append((node, nodes[neighbor_id], 1))  # Assuming a cost of 1 for each edge
-                        
+                            edges.append((node, nodes[neighbor_id], 1))  # Keep weight as 1 for destinations
 
         return Graph(edges=edges, nodes=nodes, bi_directional=False)
+
 
     def is_diagonal_move(self, x1, y1, x2, y2):
         """
@@ -153,50 +143,33 @@ class Car(Agent):
         
         return ((self.pos[0] - self.destination[0])**2 + (self.pos[1] - self.destination[1])**2)**0.5
     
-
+    def getPath(self):
+        end_id = self.destination[1] * self.model.width + self.destination[0]
+            # print("End id: ", end_id)
+        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        end_node = self.custom_graph.nodes.get(end_id)
+            
+        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
+        # Find the path from start to end using the custom graph
+        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
+        self.path = path
+    
     def move(self):
         """
         Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
         """
 
         # Create a custom graph for this car agent
-        # custom_graph = self.create_custom_graph()
         for node in self.custom_graph.nodes.values():
             node.cleanup()
         
-            
-        # Ensure self.pos is a tuple representing the position of the car
-        #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
-
-        # Find the start and end nodes in the graph
-        end_id = self.destination[1] * self.model.width + self.destination[0]
-        # print("End id: ", end_id)
-        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
-        end_node = self.custom_graph.nodes.get(end_id)
+        if not self.path:
+            self.getPath()
         
-        # print("Start node: ", start_node.node_id)
-        # print("End node: ", end_node.node_id)
-        # print("Start: ", self.pos)
-        # print ("Destination: ", self.destination)
-        # print("width",self.model.width)
-        # print("Height",self.model.height)
-        
-        #if start_node and end_node:
-        # print("Finding path...")
-        # Create a Dijkstra pathfinder instance
-        #finder=AStarFinder(diagonal_movement=DiagonalMovement.always)
-        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
-        # Find the path from start to end using the custom graph
-        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
-
-        #Debug output
-        # print(f"Path found: {list(p.node_id for p in path)}")
-        # print(f"Runs: {runs}")
-
         # If a path exists, move the car along the path
-        if path and len(path) > 1:
+        if self.path and len(self.path) > 1:
             # The next step is the second node in the path, as the first is the start node
-            next_node = path[1]
+            next_node = self.path[1]
 
             # Convert the next node's ID to a tuple representing the position of the car
             nx = next_node.node_id % self.model.width
@@ -219,10 +192,12 @@ class Car(Agent):
 
             # Move the car to the next step position
             self.model.grid.move_agent(self, next_step_pos)
+            self.path.pop(0)
 
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
         else:
+            #self.getPath()
             print("No path found or path is too short.")
 
 
