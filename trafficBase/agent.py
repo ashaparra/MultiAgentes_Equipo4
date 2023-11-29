@@ -24,6 +24,16 @@ class Car(Agent):
         self.destination = destination
         self.direction = None
         self.custom_graph = self.create_custom_graph()
+        self.needs_path_recalculation = False
+        self.state = "moving" 
+
+
+    def set_waiting_state(self):
+        self.state = "waiting"
+
+    # Add a method to update the car's state when it starts moving again
+    def set_moving_state(self):
+        self.state = "moving"
 
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
@@ -164,6 +174,11 @@ class Car(Agent):
         for node in self.custom_graph.nodes.values():
             node.cleanup()
         
+        if self.needs_path_recalculation:
+            self.check_path_recalculation_trigger()
+            if self.needs_path_recalculation:
+                self.calculate_path()
+        
             
         # Ensure self.pos is a tuple representing the position of the car
         #start_pos = self.pos if isinstance(self.pos, tuple) else (self.pos.x, self.pos.y)
@@ -206,6 +221,7 @@ class Car(Agent):
 
             if any(isinstance(content, Car) for content in car_agent_content):
                 # print("Car in front, waiting...")
+                self.set_waiting_state()
                 return
 
             # Check for traffic lights at the next step position
@@ -216,8 +232,10 @@ class Car(Agent):
             if traffic_light and not traffic_light.state:
                 # print("Traffic light is red, waiting...")
                 return  # Do not move if the traffic light is red
+                self.set_waiting_state()
 
             # Move the car to the next step position
+            self.set_moving_state() 
             self.model.grid.move_agent(self, next_step_pos)
 
             # Manually update self.pos to be a tuple after moving
@@ -234,15 +252,58 @@ class Car(Agent):
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
             # print("Car arrived at destination and was removed from the grid.")
+    
+    def check_path_recalculation_trigger(self):
+        # Assuming calculate_next_step() calculates the next step position based on current direction and position
+        next_step_pos = self.calculate_next_step()
+        car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
+
+        # Check if there are two or more 'waiting' state cars in front
+        waiting_cars = [content for content in car_agent_content if isinstance(content, Car) and content.state == "waiting"]
+        if len(waiting_cars) >= 2:
+            self.needs_path_recalculation = True
+        else:
+            self.needs_path_recalculation = False
+
+
+
+
+    def calculate_path(self):
+        # Create a new custom graph
+        self.custom_graph = self.create_custom_graph()
+
+        # Find the start and end nodes in the graph
+        end_id = self.destination[1] * self.model.width + self.destination[0]
+        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        end_node = self.custom_graph.nodes.get(end_id)
+
+        # Create a Dijkstra pathfinder instance
+        dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
+
+        # Find the new path from start to end using the custom graph
+        path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
+
+        # Update the flag to indicate that the path has been recalculated
+        self.needs_path_recalculation = False
+
+        # Return the new path
+        return path
+
 
     def step(self):
-            """
-            Step function called by the model, used to determine the car's actions.
-            """
-            if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
-                self.remove_car()
+        """
+        Step function called by the model, used to determine the car's actions.
+        """
+        if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
+            self.remove_car()
+        else:
+            if self.state == "waiting":
+                self.check_path_recalculation_trigger()
+                if self.needs_path_recalculation:
+                    self.calculate_path()
             else:
                 self.move()
+
 
 class Traffic_Light(Agent):
     """
