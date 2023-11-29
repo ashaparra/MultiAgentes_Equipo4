@@ -10,7 +10,7 @@ from pathfinding.finder.a_star import AStarFinder
 
 class Car(Agent):
     # ... (existing __init__ and other methods)
-    def __init__(self, unique_id, model, destination):
+    def __init__(self, unique_id, model, destination,patience):
         """
         Creates a new random agent.
         Args:
@@ -26,9 +26,13 @@ class Car(Agent):
         self.custom_graph = self.create_custom_graph()
         self.path = []
         self.state = "moving"
+        self.patience = patience
+        self.steps_waiting = 0
 
     def set_waiting(self):
         self.state = "waiting"
+        self.steps_waiting += 1
+        print("steps waiting: ", self.steps_waiting)    
        
     def set_moving(self):
         self.state = "moving"
@@ -161,25 +165,9 @@ class Car(Agent):
         # Find the path from start to end using the custom graph
         path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
         self.path = path
-    
-    def move(self):
-        """
-        Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
-        """
-
-        # Create a custom graph for this car agent
-        for node in self.custom_graph.nodes.values():
-            node.cleanup()
         
-        if not self.path:
-            self.getPath()
-        
-        
-        # If a path exists, move the car along the path
-        if self.path and len(self.path) > 1:
-            # The next step is the second node in the path, as the first is the start node
+    def change_Position(self):
             next_node = self.path[1]
-
             # Convert the next node's ID to a tuple representing the position of the car
             nx = next_node.node_id % self.model.width
             ny = next_node.node_id // self.model.width
@@ -209,18 +197,42 @@ class Car(Agent):
 
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
+    
+    def move(self):
+        """
+        Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
+        """
+        # Create a custom graph for this car agent
+        for node in self.custom_graph.nodes.values():
+            node.cleanup()
+        
+        if not self.path:
+            self.getPath()
+
+        # If a path exists, move the car along the path
+        if self.path and len(self.path) > 1:
+            traffic_neighbors=self.get_traffic_neighbors()
+            if(self.steps_waiting >= self.patience):
+                for neighbor in traffic_neighbors:
+                    traffic_light=self.model.grid.get_cell_list_contents(neighbor)
+                    if any(isinstance(content, Traffic_Light) for content in traffic_light):
+                        self.change_Position()
+                    else:
+                        print("No traffic light")
+            else:
+                self.change_Position()
+
         else:
             #self.getPath()
             print("No path found or path is too short.")
 
     def check_path_recalculation_trigger(self, next_pos):
-
         next_step_pos = next_pos
         car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
 
         # Check for waiting cars
         waiting_cars = [content for content in car_agent_content if isinstance(content, Car) and content.state == "waiting"]
-        if len(waiting_cars) >= 1:
+        if len(waiting_cars) >= 2:
             self.needs_path_recalculation = True
             self.recalculate_path()
         else:
@@ -243,10 +255,31 @@ class Car(Agent):
         self.getPath()  # This will now find a path using the modified graph
         print("recalculated path")
         self.restore_graph()
-
-
-
-
+        
+    def get_traffic_neighbors(self):
+        cell_contents = self.model.grid.get_cell_list_contents((self.pos[0], self.pos[1]))
+        current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))))
+        if current_road:
+            if current_road.direction == "Right":
+                if self.pos[0] + 1 < self.model.width:
+                    neighbors=[((self.pos[0]+1, self.pos[1]),(self.pos[0]+2, self.pos[1]),(self.pos[0]+3,self.pos[1]))]
+                    print(self.pos,"neighbors: ",neighbors)
+                    return neighbors
+            elif current_road.direction == "Left":
+                if self.pos[0] - 1 >= 0:
+                    neighbors=[((self.pos[0]-1, self.pos[1]),(self.pos[0]-2, self.pos[1]),(self.pos[0]-3,self.pos[1]))]
+                    print(self.pos,"neighbors: ",neighbors)
+                    return neighbors
+            elif current_road.direction == "Up":
+                if self.pos[1] + 1 < self.model.height:
+                    neighbors=[((self.pos[0], self.pos[1]+1),(self.pos[0], self.pos[1]+2),(self.pos[0],self.pos[1]+3))]
+                    print(self.pos,"neighbors: ",neighbors)
+                    return neighbors
+            elif current_road.direction == "Down":
+                if self.pos[1] - 1 >= 0:
+                    neighbors=[((self.pos[0], self.pos[1]-1),(self.pos[0], self.pos[1]-2),(self.pos[0],self.pos[1]-3))]
+                    print(self.pos,"neighbors: ",neighbors)
+                    return neighbors
 
     def remove_car(self):
         """
