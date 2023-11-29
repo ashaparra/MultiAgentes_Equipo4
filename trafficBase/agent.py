@@ -39,7 +39,7 @@ class Car(Agent):
 
                 node_id = y * self.model.width + x # Unique ID for each node
                 nodes[node_id] = GraphNode(node_id)
-                print(f"Node created: {node_id}")
+                # print(f"Node created: {node_id}")
 
         # Connect GraphNode objects according to valid neighbors and road directions
         for node_id, node in nodes.items():
@@ -52,7 +52,7 @@ class Car(Agent):
             current_road = next((content for content in cell_contents if isinstance(content,(Road, Traffic_Light))), None)
             if current_road:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, x, y)
-                print(f"Valid neighbors for {node_id}: {valid_neighbors}")
+                # print(f"Valid neighbors for {node_id}: {valid_neighbors}")
                 for neighbor_pos in valid_neighbors:
                     neighbor_id = neighbor_pos[1] * self.model.width + neighbor_pos[0] #f"{neighbor_pos[0]},{neighbor_pos[1]}"
                     if neighbor_id in nodes:
@@ -68,16 +68,16 @@ class Car(Agent):
                             weight = 1    
                         if neighbor_road and self.is_road_compatible(current_road.direction, neighbor_road.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  ", end = " ")
+                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  ", end = " ")
                         neighbor_traffic_light = next((content for content in neighbor_contents if isinstance(content, Traffic_Light)), None)
                         if neighbor_traffic_light and self.is_road_compatible(current_road.direction, neighbor_traffic_light.direction, x, y, neighbor_pos[0], neighbor_pos[1]):
                             edges.append((node, nodes[neighbor_id], weight))
-                            print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  " ,  end = " ")
+                            # print(f"Edge created: {node_id} -> {neighbor_id} weight:{weight}  " ,  end = " ")
                         neighbor_destination = next((content for content in neighbor_contents if isinstance(content, Destination)), None)
                         if neighbor_destination:
                             edges.append((node, nodes[neighbor_id], 1))
-                            print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
-                print()
+                            # print(f"Edge created: {node_id} -> {neighbor_id}", end = " ")
+                # print()
                         
                         
                         #neighbor_road = next((content for content in neighbor_contents if isinstance(content, Road)), None)
@@ -170,19 +170,19 @@ class Car(Agent):
 
         # Find the start and end nodes in the graph
         end_id = self.destination[1] * self.model.width + self.destination[0]
-        print("End id: ", end_id)
+        # print("End id: ", end_id)
         start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
         end_node = self.custom_graph.nodes.get(end_id)
         
-        print("Start node: ", start_node.node_id)
-        print("End node: ", end_node.node_id)
-        print("Start: ", self.pos)
-        print ("Destination: ", self.destination)
-        print("width",self.model.width)
-        print("Height",self.model.height)
+        # print("Start node: ", start_node.node_id)
+        # print("End node: ", end_node.node_id)
+        # print("Start: ", self.pos)
+        # print ("Destination: ", self.destination)
+        # print("width",self.model.width)
+        # print("Height",self.model.height)
         
         #if start_node and end_node:
-        print("Finding path...")
+        # print("Finding path...")
         # Create a Dijkstra pathfinder instance
         #finder=AStarFinder(diagonal_movement=DiagonalMovement.always)
         dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
@@ -190,8 +190,8 @@ class Car(Agent):
         path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
 
         #Debug output
-        print(f"Path found: {list(p.node_id for p in path)}")
-        print(f"Runs: {runs}")
+        # print(f"Path found: {list(p.node_id for p in path)}")
+        # print(f"Runs: {runs}")
 
         # If a path exists, move the car along the path
         if path and len(path) > 1:
@@ -202,6 +202,11 @@ class Car(Agent):
             nx = next_node.node_id % self.model.width
             ny = next_node.node_id // self.model.width
             next_step_pos = (nx, ny)
+            car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
+
+            if any(isinstance(content, Car) for content in car_agent_content):
+                # print("Car in front, waiting...")
+                return
 
             # Check for traffic lights at the next step position
             traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
@@ -209,7 +214,7 @@ class Car(Agent):
 
             # Check the state of the traffic light if there is one
             if traffic_light and not traffic_light.state:
-                print("Traffic light is red, waiting...")
+                # print("Traffic light is red, waiting...")
                 return  # Do not move if the traffic light is red
 
             # Move the car to the next step position
@@ -228,7 +233,7 @@ class Car(Agent):
         if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
-            print("Car arrived at destination and was removed from the grid.")
+            # print("Car arrived at destination and was removed from the grid.")
 
     def step(self):
             """

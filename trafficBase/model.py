@@ -72,7 +72,7 @@ class CityModel(Model):
 
         self.step_last_car += 1
 
-        if self.step_last_car >= 10:
+        if self.step_last_car >= 3:
             self.step_last_car = 0
 
 
@@ -81,3 +81,14 @@ class CityModel(Model):
         '''Advance the model by one step.'''
         self.schedule.step()
         self.spawn_cars()
+        carposition = []
+        for x in range(self.width):
+            for y in range(self.height):
+                cell = self.grid.get_cell_list_contents([(x, y)])
+                if any(isinstance(content, Car) for content in cell):
+                    carposition.append((x, y))
+                    if len(carposition) > 1:
+                        print("CRASH")
+                        self.running = False
+                        return
+                carposition.clear()
