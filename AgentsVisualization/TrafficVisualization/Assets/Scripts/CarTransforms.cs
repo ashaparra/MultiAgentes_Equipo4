@@ -10,8 +10,12 @@ public class CarTransforms : MonoBehaviour
     [SerializeField] GameObject wheelPrefab;
     [SerializeField] List<Vector3> wheels;
 
-    [Header ("Car Movement")]
-    [SerializeField] Vector3 direccion;
+    [Header ("Car")]
+    [SerializeField] Vector3 carScale;
+
+    [Header ("Movement interpolation")]
+    [SerializeField] Vector3 startPosition= new Vector3(0,0,0);
+    [SerializeField] Vector3 endPosition= new Vector3(0,0,0);
     Mesh mesh;
     Vector3[] baseVertices;
     Vector3[] newVertices;
@@ -50,17 +54,29 @@ public class CarTransforms : MonoBehaviour
             }
         }
     }
-
-    void Update(){
-        DoTransform();
+    Vector3 NewTarget(Vector3 currentPosition, Vector3 targetPosition, float dt){
+        if (endPosition != targetPosition){
+            startPosition = currentPosition;
+            endPosition = targetPosition;
+            dt=Mathf.Clamp(dt,0,1);
+            Vector3 target = Vector3.Lerp(startPosition, endPosition, dt);
+            return target;
+        }
+        else{
+            return targetPosition;
+        }
     }
-    void DoTransform()
+    public void SetMove(Vector3 currentPosition, Vector3 targetPosition, float dt){
+        DoTransform(NewTarget(currentPosition, targetPosition, dt));
+        
+    }
+    void DoTransform(Vector3 position)
     {
         //Rotaciones
         //Posicionar el carro volteando a 0 0 0 originalmente (frente)
-        Matrix4x4 orientCar= HW_Transforms.RotateMat(180, AXIS.Y);
+        Matrix4x4 orientCar= HW_Transforms.RotateMat(90, AXIS.Y);
         //Calcular rotacion para el carro en base a donde se esta moviendo en x y y
-        float rotateYRad = Mathf.Atan2(direccion.z, direccion.x);
+        float rotateYRad = Mathf.Atan2(endPosition.x - startPosition.x, endPosition.z - startPosition.z);
         //Convertir de radianes a grados
         float rotateYDeg = rotateYRad * Mathf.Rad2Deg;
         //Crear matriz de rotacion en y
@@ -71,12 +87,11 @@ public class CarTransforms : MonoBehaviour
 
         //Mover carro
         //Calcular en que direccion se va a mover, con el input de unity
-        Matrix4x4 move = HW_Transforms.TranslationMat(direccion.x*Time.time,
-                                                      direccion.y*Time.time,
-                                                      direccion.z*Time.time);
+        Matrix4x4 move = HW_Transforms.TranslationMat(position.x, position.y, position.z);
         
+        Matrix4x4 scaleMat = HW_Transforms.ScaleMat(carScale.x, carScale.y, carScale.z);
         //Crear matriz compuesta de rotacion y traslacion
-        Matrix4x4 composite = move  * rotate;
+        Matrix4x4 composite = move  * rotate * scaleMat;
         //Aplicar composite a cada vértice del carro
         for (int i = 0; i<newVertices.Length; i++){
             Vector4 temp = new Vector4(baseVertices[i].x,baseVertices[i].y,baseVertices[i].z,1);
