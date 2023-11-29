@@ -135,7 +135,7 @@ public class AgentController : MonoBehaviour
                 Vector3 prevPos = prevPositions[agent.Key];
                 Vector3 currPos = agent.Value;
 
-                agents[agent.Key].GetComponent<CarTransforms>().SetMove(prevPos, currPos, dt);
+                //agents[agent.Key].GetComponent<CarTransforms>().SetMove(prevPos, currPos, dt);
                 
             }
 
@@ -210,6 +210,7 @@ public class AgentController : MonoBehaviour
             //Debug.Log(www.downloadHandler.text);
             agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
             //Debug.Log(agentsData.positions.Count);
+            Debug.Log("New step");
             foreach(AgentData agent in agentsData.positions)
             {
                 //Debug.Log(agent.id);
@@ -218,18 +219,15 @@ public class AgentController : MonoBehaviour
                     if(agents.ContainsKey(agent.id))
                     {
                         Vector3 currentPos = new Vector3();
-                        if (currPositions.TryGetValue(agent.id, out currentPos))
-                        {
-                            Debug.Log(agent.id);
-                            prevPositions[agent.id] = currentPos;
-                            currPositions[agent.id] = newAgentPosition;
-                        }
+                        
+                            Debug.Log(agent.id + " " + currentPos + " " + newAgentPosition);
+                            agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition,timer);
+
                     }
                     else
                     {
-                        prevPositions[agent.id] = newAgentPosition;
-                        currPositions[agent.id] = newAgentPosition;
                         agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
+                        agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition,timer);
                     }
             }
 

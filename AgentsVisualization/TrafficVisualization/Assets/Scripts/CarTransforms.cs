@@ -23,6 +23,9 @@ public class CarTransforms : MonoBehaviour
     List<Mesh> wheelsMeshes;
     List<Vector3[]> baseWheelsVertices;
     List<Vector3[]> newWheelsVertices;
+    float timer = 0.0f;
+    float timeToUpdate = 1.0f;
+    float dt = 0.0f;
 
 
     void Start()
@@ -55,28 +58,35 @@ public class CarTransforms : MonoBehaviour
         }
     }
     Vector3 NewTarget(Vector3 currentPosition, Vector3 targetPosition, float dt){
-        if (endPosition != targetPosition){
-            startPosition = currentPosition;
-            endPosition = targetPosition;
+        
             dt=Mathf.Clamp(dt,0,1);
             Vector3 target = Vector3.Lerp(startPosition, endPosition, dt);
             return target;
-        }
-        else{
-            return targetPosition;
-        }
     }
-    public void SetMove(Vector3 currentPosition, Vector3 targetPosition, float dt){
-        DoTransform(NewTarget(currentPosition, targetPosition, dt));
+    void Update()
+    {
+        //Llamar a transformaciones para el carro
+        timer -= Time.deltaTime;
+        dt = 1.0f - (timer / timeToUpdate);
+        DoTransform(NewTarget(startPosition, endPosition, dt));
+    }
+    public void SetMove(Vector3 targetPosition,float dt){
+        // DoTransform(NewTarget(currentPosition, targetPosition, dt));
+        timer = timeToUpdate;
+        if (endPosition != targetPosition){
+            startPosition = endPosition;
+            endPosition = targetPosition;
+        }
         
     }
+
     void DoTransform(Vector3 position)
     {
         //Rotaciones
         //Posicionar el carro volteando a 0 0 0 originalmente (frente)
-        Matrix4x4 orientCar= HW_Transforms.RotateMat(90, AXIS.Y);
+        Matrix4x4 orientCar= HW_Transforms.RotateMat(180, AXIS.Y);
         //Calcular rotacion para el carro en base a donde se esta moviendo en x y y
-        float rotateYRad = Mathf.Atan2(endPosition.x - startPosition.x, endPosition.z - startPosition.z);
+        float rotateYRad = Mathf.Atan2(endPosition.z - startPosition.z, endPosition.x - startPosition.x);
         //Convertir de radianes a grados
         float rotateYDeg = rotateYRad * Mathf.Rad2Deg;
         //Crear matriz de rotacion en y
