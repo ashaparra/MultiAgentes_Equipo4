@@ -13,6 +13,8 @@ def agent_portrayal(agent):
                  "h": 1
                  }
 
+    portrayal["text"] = f"{agent.pos[1] * agent.model.width + agent.pos[0]}" 
+
     if (isinstance(agent, Road)):
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 0
@@ -40,7 +42,7 @@ def agent_portrayal(agent):
         portrayal["Layer"] = 0
         portrayal["w"] = 0.8
         portrayal["h"] = 0.8
-        portrayal["text"] = agent.unique_id 
+        portrayal["text"] = f"{agent.pos[1] * agent.model.width + agent.pos[0]}-{agent.end_node_id}" 
         portrayal["text_color"] = "white"
 
 
