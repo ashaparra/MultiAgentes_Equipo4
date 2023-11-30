@@ -370,7 +370,9 @@ public class AgentController : MonoBehaviour
 
             foreach(AgentData obstacle in obstacleData.positions)
             {
-                Instantiate(obstaclePrefab, new Vector3(obstacle.x, obstacle.y, obstacle.z), Quaternion.identity);
+                GameObject obstacleObject=Instantiate(obstaclePrefab, new Vector3(obstacle.x, obstacle.y, obstacle.z), Quaternion.identity);
+                Building buildingComponent = obstacleObject.GetComponent<Building>();
+                buildingComponent.SetColor();
             }
         }
     }
@@ -404,7 +406,7 @@ public class AgentController : MonoBehaviour
     } 
 }
 
-    IEnumerator GetRoadsData() 
+  IEnumerator GetRoadsData() 
     {
         UnityWebRequest www = UnityWebRequest.Get(serverUrl + getRoadsEndpoint);
         yield return www.SendWebRequest();
@@ -423,6 +425,7 @@ public class AgentController : MonoBehaviour
             }
         }
     }
+    
 
     IEnumerator GetDestinationsData() 
     {
