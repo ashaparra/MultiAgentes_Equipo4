@@ -27,6 +27,8 @@ class Car(Agent):
         self.path = []
         self.patience = patience
         self.status = "moving"
+        self.start_node_id = None
+        self.end_node_id = destination[1] * self.model.width + destination[0]
     
     def set_waiting(self):
         """
@@ -170,6 +172,7 @@ class Car(Agent):
         end_node = self.custom_graph.nodes.get(end_id)
 
 
+        print(self.custom_graph.nodes)
         print("Start node: ", start_node, "Start id: ", start_id)
         print("End node: ", end_node, "End id: ", end_id)
             
@@ -185,6 +188,7 @@ class Car(Agent):
         """
 
 
+
         
         if not self.path:
             self.getPath()
@@ -195,9 +199,11 @@ class Car(Agent):
                 self.change_Position()
             else:
                all_neighbors= self.get_traffic_neighbors()
-               all_neighbors.pop(0)
-               self.pos = all_neighbors[0]
-               self.getPath()
+               if all_neighbors != None:
+                if len(all_neighbors)>0:
+                    all_neighbors.pop(0)
+                    self.pos = all_neighbors[0]
+                    self.getPath()
         else:
             #self.getPath()
             print("No path found or path is too short.")
@@ -209,9 +215,11 @@ class Car(Agent):
         cell_contents = self.model.grid.get_cell_list_contents((self.pos[0], self.pos[1]))
         car_content = next((content for content in cell_contents if isinstance(content, Car)), None)
         current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
-        if car_content:
-            if current_road:
+        if car_content != None:
+            if current_road != None:
                 valid_neighbors = self.get_valid_neighbors(current_road.direction, self.pos[0], self.pos[1])
+
+
                 extended_neighbors = []
                 if current_road.direction == "Right":
                     for neighbor_pos in valid_neighbors:
@@ -240,8 +248,12 @@ class Car(Agent):
             
                 # Combine original and extended neighbors
                 all_neighbors = valid_neighbors + extended_neighbors
-        print("cell:",self.pos, "neighbors:", all_neighbors)
-        return all_neighbors
+
+                all_neighbors = [vn.pos for neighbor in all_neighbors for vn in filter(lambda x: not isinstance(x, Obstacle), self.model.grid.get_cell_list_contents(neighbor))]
+                
+                print("cell:",self.pos, "neighbors:", all_neighbors)
+                return all_neighbors
+        return []
         
     def change_Position(self):
             next_node = self.path[1]
