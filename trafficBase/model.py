@@ -60,7 +60,7 @@ class CityModel(Model):
         
     def spawn_cars(self):
         # Spawn cars only every 3 steps
-        if self.step_last_car % 3 == 0:
+        if self.step_last_car % 10 == 0:
             positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
             self.cars_added = 0  # Counter for the number of cars added in this cycle
 

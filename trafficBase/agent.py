@@ -200,8 +200,12 @@ class Car(Agent):
             next_node = self.path[1]
             nx = next_node.node_id % self.model.width
             ny = next_node.node_id // self.model.width
-            next_step_pos = (nx, ny)
+            next_step_pos = (nx, ny)  
 
+            if self.is_red_light_ahead() and self.status == "waiting":
+                self.set_waiting()
+                return
+            
             car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
             if any(isinstance(content, (Car, Traffic_Light)) for content in car_agent_content):
                 if self.patience > 0:
@@ -209,7 +213,8 @@ class Car(Agent):
                 else:
                     all_neighbors = self.get_traffic_neighbors()
                     for neighbor in all_neighbors:
-                        if not any(isinstance(content, Car) for content in self.model.grid.get_cell_list_contents(neighbor)):
+                    
+                        if not any(isinstance(content, (Car, Traffic_Light, Destination)) for content in self.model.grid.get_cell_list_contents(neighbor)):
                             # Add the neighbor as the new starting point of the path
                             neighbor_node_id = neighbor[1] * self.model.width + neighbor[0]
                             neighbor_node = self.custom_graph.nodes[neighbor_node_id]
@@ -224,6 +229,7 @@ class Car(Agent):
         else:
             print("No path found or path is too short.")
 
+        
      
 
 
@@ -306,6 +312,19 @@ class Car(Agent):
 
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
+
+    def is_red_light_ahead(self):
+        """
+        Checks if there is a red traffic light within the next two positions in front of the car.
+        """
+        extended_neighbors = self.get_traffic_neighbors()
+        for neighbor_pos in extended_neighbors:
+            cell_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
+            traffic_light = next((content for content in cell_contents if isinstance(content, Traffic_Light)), None)
+            if traffic_light and not traffic_light.state:  # Check if red light
+                return True
+        return False
+
 
     def remove_car(self):
         """
