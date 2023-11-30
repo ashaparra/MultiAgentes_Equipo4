@@ -50,14 +50,16 @@ public class TrafficLigthData
     public string id;
     public float x, y, z;
     public bool state;
+    public string direction;
 
-    public TrafficLigthData(string id, float x, float y, float z, bool state)
+    public TrafficLigthData(string id, float x, float y, float z, bool state, string direction)
     {
         this.id = id;
         this.x = x;
         this.y = y;
         this.z = z;
         this.state =state;
+        this.direction = direction;
     }
 
 }
@@ -333,6 +335,7 @@ public class AgentController : MonoBehaviour
                 else
                 {
                 trafficLights[trafficLigth.id]=Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetDirection(trafficLigth.direction);
                 Instantiate(roadPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
                 }
         }
