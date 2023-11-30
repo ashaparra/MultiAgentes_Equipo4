@@ -61,7 +61,7 @@ class CityModel(Model):
             for i in range(0, 1):
                 destination = random.choice(self.destinations)
                 positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
-                pos = (self.width - 1, 0)
+                pos = positions[i]
 
                 # Check if the selected cell is already occupied by a car agent
                 if not any(isinstance(agent, Car) for agent in self.grid.get_cell_list_contents([pos])):
