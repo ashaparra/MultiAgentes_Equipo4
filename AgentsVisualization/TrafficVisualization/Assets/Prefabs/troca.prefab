@@ -83,6 +83,8 @@ MonoBehaviour:
   - {x: 1.703, y: 0.646, z: 1.02}
   - {x: 1.703, y: 0.646, z: -1.02}
   - {x: -1.426, y: 0.646, z: 1.02}
+  - {x: -1.426, y: 0.646, z: -1.02}
   carScale: {x: 0.17, y: 0.17, z: 0.17}
   startPosition: {x: 0, y: 0, z: 0}
   endPosition: {x: 0, y: 0, z: 0}
+  lastPosition: {x: 0, y: 0, z: 0}

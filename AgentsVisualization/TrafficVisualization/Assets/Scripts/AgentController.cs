@@ -135,12 +135,11 @@ public class AgentController : MonoBehaviour
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
     Dictionary<string, GameObject> trafficLights;
-
     bool updated = false, started = false;
-
     public GameObject agentPrefab, obstaclePrefab, trafficLigthPrefab, roadPrefab, destinationPrefab;
     public float timeToUpdate = 5.0f;
     private float timer, dt;
+    Dictionary<string, List<GameObject>> carWheels = new Dictionary<string, List<GameObject>>();
 
     void Start()
     {
@@ -250,48 +249,100 @@ public class AgentController : MonoBehaviour
         }
     }
 
-    IEnumerator GetAgentsData() 
-    {
-        // The GetAgentsData method is used to get the agents data from the server.
+    // IEnumerator GetAgentsData() 
+    // {
+    //     // The GetAgentsData method is used to get the agents data from the server.
 
-        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
-        yield return www.SendWebRequest();
+    //     UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
+    //     yield return www.SendWebRequest();
  
-        if (www.result != UnityWebRequest.Result.Success)
-            Debug.Log(www.error);
-        else 
-        {
-            // Once the data has been received, it is stored in the agentsData variable.
-            // Then, it iterates over the agentsData.positions list to update the agents positions.
-            //Debug.Log(www.downloadHandler.text);
-            agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
-            //Debug.Log(agentsData.positions.Count);
-            Debug.Log("New step");
-            foreach(AgentData agent in agentsData.positions)
-            {
-                //Debug.Log(agent.id);
-                Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
+    //     if (www.result != UnityWebRequest.Result.Success)
+    //         Debug.Log(www.error);
+    //     else 
+    //     {
+    //         // Once the data has been received, it is stored in the agentsData variable.
+    //         // Then, it iterates over the agentsData.positions list to update the agents positions.
+    //         //Debug.Log(www.downloadHandler.text);
+    //         agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+    //         //Debug.Log(agentsData.positions.Count);
+    //         Debug.Log("New step");
+    //         foreach(AgentData agent in agentsData.positions)
+    //         {
+    //             //Debug.Log(agent.id);
+    //             Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
 
-                    if(agents.ContainsKey(agent.id))
-                    {
-                        Vector3 currentPos = new Vector3();
+    //                 if(agents.ContainsKey(agent.id))
+    //                 {
+    //                     Vector3 currentPos = new Vector3();
                         
-                            Debug.Log(agent.id + " " + currentPos + " " + newAgentPosition);
-                            agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
-                            agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
+    //                         Debug.Log(agent.id + " " + currentPos + " " + newAgentPosition);
+    //                         agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+    //                         agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
 
-                    }
-                    else
-                    {
-                        agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
-                        agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
-                    }
-            }
+    //                 }
+    //                 else
+    //                 {
+    //                     agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
+    //                     agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+    //                 }
+    //         }
 
-            updated = true;
-            if(!started) started = true;
-        }
+    //         updated = true;
+    //         if(!started) started = true;
+    //     }
+    // }
+    IEnumerator GetAgentsData() 
+{
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+    {
+        Debug.Log(www.error);
     }
+    else 
+    {
+        agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+        HashSet<string> receivedIds = new HashSet<string>();
+        foreach(AgentData agent in agentsData.positions)
+        {
+            receivedIds.Add(agent.id);
+            Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
+
+            if(agents.ContainsKey(agent.id))
+            {
+                agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+                agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
+            }
+            else
+            {
+                agents[agent.id] = Instantiate(agentPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+                agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+            }
+        }
+
+        // Remove agents that are no longer in the received data
+        List<string> idsToDelete = new List<string>();
+        foreach (var agentPair in agents)
+        {
+            if (!receivedIds.Contains(agentPair.Key))
+            {
+                idsToDelete.Add(agentPair.Key);
+            }
+        }
+
+        foreach (var id in idsToDelete)
+        {
+            GameObject agentToDelete = agents[id];
+            Destroy(agentToDelete); // Destroy the GameObject
+            agents.Remove(id); // Remove from the dictionary
+        }
+
+        updated = true;
+        if(!started) started = true;
+    }
+}
+
 
     IEnumerator GetObstacleData() 
     {
