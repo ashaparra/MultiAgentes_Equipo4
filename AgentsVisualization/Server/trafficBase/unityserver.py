@@ -87,41 +87,8 @@ def updateModel():
             return jsonify({'message':f'Model not initialized.'})
         cityModel.step()
         currentStep += 1
-        if currentStep % 100 == 0:
-
-            num_cars = get_number_of_active_cars()  # Get the number of active cars
-            send_performance_data(num_cars)
         return jsonify({'message':f'Model updated to step {currentStep}.', 'currentStep':currentStep})
 
-@app.route('/sendPerformanceData', methods=['GET'])
-def send_performance():
-    num_cars = get_number_of_active_cars()  # Implement this function to get the number of active cars
-    send_performance_data(num_cars)
-    return jsonify({'message': 'Performance data sent'})
-
-def send_performance_data(num_cars):
-    url = " http://52.1.3.19:8585/api/validate_attempt" 
-    data = {
-        "year":2023,
-        "classroom":301,
-        "name": "Equipo4",
-        "num_cars": num_cars
-        # Add other data if necessary
-    }
-    headers = {"Content-Type": "application/json"}
-    print("Sending data:", data)
-    response = requests.post(url, data=json.dumps(data), headers=headers)
-
-    if response.status_code == 200:
-        print("Data sent successfully")
-        print("Response:", response.json()) 
-    else:
-        print("Failed to send data")
-
-def get_number_of_active_cars():
-        global cityModel
-        active_cars = [agent for agent in cityModel.schedule.agents if isinstance(agent, Car)]
-        return len(active_cars)
 
 
 if __name__=='__main__':

@@ -80,7 +80,7 @@ class Car(Agent):
 
                         # Adjust weight for diagonal moves
                         if self.is_diagonal_move(x, y, neighbor_pos[0], neighbor_pos[1]):
-                            weight = 1.3  # Higher weight for diagonal moves
+                            weight = 1 # Higher weight for diagonal moves
                         else:
                             weight = 1    # Normal weight for straight moves
 

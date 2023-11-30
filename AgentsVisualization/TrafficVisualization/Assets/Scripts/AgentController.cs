@@ -137,7 +137,7 @@ public class AgentController : MonoBehaviour
     Dictionary<string, GameObject> trafficLights;
     bool updated = false, started = false;
     public GameObject agentPrefab, obstaclePrefab, trafficLigthPrefab, roadPrefab, destinationPrefab;
-    public float timeToUpdate = 5.0f;
+    public float timeToUpdate = 0.5f;
     private float timer, dt;
     Dictionary<string, List<GameObject>> carWheels = new Dictionary<string, List<GameObject>>();
 
