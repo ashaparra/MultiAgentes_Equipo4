@@ -10,7 +10,7 @@ from pathfinding.finder.a_star import AStarFinder
 
 class Car(Agent):
     # ... (existing __init__ and other methods)
-    def __init__(self, unique_id, model, destination):
+    def __init__(self, unique_id, model, destination, patience):
         """
         Creates a new random agent.
         Args:
@@ -25,6 +25,21 @@ class Car(Agent):
         self.direction = None
         self.custom_graph = self.create_custom_graph()
         self.path = []
+        self.patience = patience
+        self.status = "moving"
+    
+    def set_waiting(self):
+        """
+        Sets the car's status to waiting.
+        """
+        self.status = "waiting"
+        self.patience -= 1
+    
+    def set_moving(self):
+        """
+        Sets the car's status to moving.
+        """
+        self.status = "moving"
 
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
@@ -144,59 +159,45 @@ class Car(Agent):
         return ((self.pos[0] - self.destination[0])**2 + (self.pos[1] - self.destination[1])**2)**0.5
     
     def getPath(self):
+                        # Create a custom graph for this car agent
+        for node in self.custom_graph.nodes.values():
+            node.cleanup()
+        
         end_id = self.destination[1] * self.model.width + self.destination[0]
             # print("End id: ", end_id)
-        start_node = self.custom_graph.nodes.get(self.pos[1] * self.model.width + self.pos[0])
+        start_id = self.pos[1] * self.model.width + self.pos[0]
+        start_node = self.custom_graph.nodes.get(start_id)
         end_node = self.custom_graph.nodes.get(end_id)
+
+
+        print("Start node: ", start_node, "Start id: ", start_id)
+        print("End node: ", end_node, "End id: ", end_id)
             
         dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
         # Find the path from start to end using the custom graph
         path, runs = dfinder.find_path(start_node, end_node, self.custom_graph)
         self.path = path
+
     
     def move(self):
         """
         Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
         """
 
-        # Create a custom graph for this car agent
-        for node in self.custom_graph.nodes.values():
-            node.cleanup()
+
         
         if not self.path:
             self.getPath()
         
         # If a path exists, move the car along the path
         if self.path and len(self.path) > 1:
-            # The next step is the second node in the path, as the first is the start node
-            next_node = self.path[1]
-
-            # Convert the next node's ID to a tuple representing the position of the car
-            nx = next_node.node_id % self.model.width
-            ny = next_node.node_id // self.model.width
-            next_step_pos = (nx, ny)
-            car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
-            self.get_traffic_neighbors()
-
-            if any(isinstance(content, Car) for content in car_agent_content):
-                # print("Car in front, waiting...")
-                return
-
-            # Check for traffic lights at the next step position
-            traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
-            traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
-
-            # Check the state of the traffic light if there is one
-            if traffic_light and not traffic_light.state:
-                # print("Traffic light is red, waiting...")
-                return  # Do not move if the traffic light is red
-
-            # Move the car to the next step position
-            self.model.grid.move_agent(self, next_step_pos)
-            self.path.pop(0)
-
-            # Manually update self.pos to be a tuple after moving
-            self.pos = next_step_pos
+            if self.patience>0:
+                self.change_Position()
+            else:
+               all_neighbors= self.get_traffic_neighbors()
+               all_neighbors.pop(0)
+               self.pos = all_neighbors[0]
+               self.getPath()
         else:
             #self.getPath()
             print("No path found or path is too short.")
@@ -206,38 +207,73 @@ class Car(Agent):
         Get the neighbors of the car's current position that are traffic lights.
         """
         cell_contents = self.model.grid.get_cell_list_contents((self.pos[0], self.pos[1]))
+        car_content = next((content for content in cell_contents if isinstance(content, Car)), None)
         current_road = next((content for content in cell_contents if isinstance(content, (Road, Traffic_Light))), None)
-        if current_road:
-            valid_neighbors = self.get_valid_neighbors(current_road.direction, self.pos[0], self.pos[1])
-            extended_neighbors = []
-            if current_road.direction == "Right":
-                for neighbor_pos in valid_neighbors:
-                    if neighbor_pos[0] + 1 < self.model.width:
-                        extended_neighbors.append((neighbor_pos[0]+1, neighbor_pos[1]))
-                    if neighbor_pos[0] + 2 < self.model.width:
-                        extended_neighbors.append((neighbor_pos[0]+2, neighbor_pos[1]))
-            if current_road.direction == "Left":
-                for neighbor_pos in valid_neighbors:
-                    if neighbor_pos[0] - 1 >= 0:
-                        extended_neighbors.append((neighbor_pos[0]-1, neighbor_pos[1]))
-                    if neighbor_pos[0] - 2 >= 0:
-                        extended_neighbors.append((neighbor_pos[0]-2, neighbor_pos[1]))
-            if current_road.direction == "Up":
-                for neighbor_pos in valid_neighbors:
-                    if neighbor_pos[1] + 1 < self.model.height:
-                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+1))
-                    if neighbor_pos[1] + 2 < self.model.height:
-                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+2))
-            if current_road.direction == "Down":
-                for neighbor_pos in valid_neighbors:
-                    if neighbor_pos[1] - 1 >= 0:
-                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-1))
-                    if neighbor_pos[1] - 2 >= 0:
-                        extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-2))
+        if car_content:
+            if current_road:
+                valid_neighbors = self.get_valid_neighbors(current_road.direction, self.pos[0], self.pos[1])
+                extended_neighbors = []
+                if current_road.direction == "Right":
+                    for neighbor_pos in valid_neighbors:
+                        if neighbor_pos[0] + 1 < self.model.width:
+                            extended_neighbors.append((neighbor_pos[0]+1, neighbor_pos[1]))
+                        if neighbor_pos[0] + 2 < self.model.width:
+                            extended_neighbors.append((neighbor_pos[0]+2, neighbor_pos[1]))
+                if current_road.direction == "Left":
+                    for neighbor_pos in valid_neighbors:
+                        if neighbor_pos[0] - 1 >= 0:
+                            extended_neighbors.append((neighbor_pos[0]-1, neighbor_pos[1]))
+                        if neighbor_pos[0] - 2 >= 0:
+                            extended_neighbors.append((neighbor_pos[0]-2, neighbor_pos[1]))
+                if current_road.direction == "Up":
+                    for neighbor_pos in valid_neighbors:
+                        if neighbor_pos[1] + 1 < self.model.height:
+                            extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+1))
+                        if neighbor_pos[1] + 2 < self.model.height:
+                            extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]+2))
+                if current_road.direction == "Down":
+                    for neighbor_pos in valid_neighbors:
+                        if neighbor_pos[1] - 1 >= 0:
+                            extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-1))
+                        if neighbor_pos[1] - 2 >= 0:
+                            extended_neighbors.append((neighbor_pos[0], neighbor_pos[1]-2))
+            
+                # Combine original and extended neighbors
+                all_neighbors = valid_neighbors + extended_neighbors
+        print("cell:",self.pos, "neighbors:", all_neighbors)
+        return all_neighbors
         
-            # Combine original and extended neighbors
-            all_neighbors = valid_neighbors + extended_neighbors
-            print("cell:",self.pos, "neighbors:", all_neighbors)
+    def change_Position(self):
+            next_node = self.path[1]
+            # Convert the next node's ID to a tuple representing the position of the car
+            nx = next_node.node_id % self.model.width
+            ny = next_node.node_id // self.model.width
+            next_step_pos = (nx, ny)
+            car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
+
+            if any(isinstance(content, Car) for content in car_agent_content):
+                # print("Car in front, waiting...")
+                self.set_waiting()
+                return
+
+            # Check for traffic lights at the next step position
+            traffic_light_contents = self.model.grid.get_cell_list_contents(next_step_pos)
+            traffic_light = next((content for content in traffic_light_contents if isinstance(content, Traffic_Light)), None)
+
+            # Check the state of the traffic light if there is one
+            if traffic_light and not traffic_light.state:
+                # print("Traffic light is red, waiting...")
+                self.set_waiting()
+                return  # Do not move if the traffic light is red
+
+            # Move the car to the next step position
+            self.set_moving()
+            self.model.grid.move_agent(self, next_step_pos)
+            self.path.pop(0)
+
+            # Manually update self.pos to be a tuple after moving
+            self.pos = next_step_pos
+
     def remove_car(self):
         """
         Removes the car from the grid.

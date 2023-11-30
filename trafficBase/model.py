@@ -65,7 +65,8 @@ class CityModel(Model):
 
                 # Check if the selected cell is already occupied by a car agent
                 if not any(isinstance(agent, Car) for agent in self.grid.get_cell_list_contents([pos])):
-                    agent = Car(f"c_{self.num_agents}", self, destination)
+                    patience = random.randint(1,5)
+                    agent = Car(f"c_{self.num_agents}", self, destination, patience)
                     self.grid.place_agent(agent, pos)
                     self.schedule.add(agent)
                     self.num_agents -= 1
