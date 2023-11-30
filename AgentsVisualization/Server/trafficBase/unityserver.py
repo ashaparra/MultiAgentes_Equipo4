@@ -46,9 +46,9 @@ def getTrafficLights():
     global cityModel
 
     if request.method == 'GET':
-        trafficLightPositions = [{"id": str(tl.unique_id), "x": x, "y":1, "z":z} 
-                            for x in range (cityModel.width) for z in range (cityModel.height)
-                            for tl in cityModel.grid.get_cell_list_contents((x, z)) if isinstance(tl, Traffic_Light)]
+        trafficLightPositions = [{"id": str(tl.unique_id), "x": x, "y":1, "z":z, "state": tl.state,"direction": tl.direction} 
+                                for cells, (x,z) in cityModel.grid.coord_iter() 
+                                for tl in cells if isinstance(tl, Traffic_Light)]
 
         return jsonify({'positions':trafficLightPositions})
 

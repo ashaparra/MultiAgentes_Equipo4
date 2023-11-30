@@ -63,6 +63,27 @@ class CityModel(Model):
 
         self.running = True
 
+    def spawn_cars(self):
+        if self.step_last_car == 0:
+            for i in range(0, 1):
+                destination = random.choice(self.destinations)
+                positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
+                pos = positions[i]
+
+                # Check if the selected cell is already occupied by a car agent
+                if not any(isinstance(agent, Car) for agent in self.grid.get_cell_list_contents([pos])):
+                    agent = Car(f"c_{self.num_agents}", self, destination)
+                    self.grid.place_agent(agent, pos)
+                    self.schedule.add(agent)
+                    self.num_agents -= 1
+
+        self.step_last_car += 1
+
+        if self.step_last_car >= 6:
+            self.step_last_car = 0
+
+
+        
     def step(self):
         '''Advance the model by one step.'''
         self.schedule.step()

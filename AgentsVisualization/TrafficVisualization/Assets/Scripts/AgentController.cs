@@ -31,6 +31,37 @@ public class AgentData
         this.y = y;
         this.z = z;
     }
+
+}
+
+[Serializable]
+public class TrafficLigthData
+{
+    /*
+    The TrafficLigth class is used to store the data of each agent.
+    
+    Attributes:
+        id (string): The id of the agent.
+        x (float): The x coordinate of the agent.
+        y (float): The y coordinate of the agent.
+        z (float): The z coordinate of the agent.
+        state (string): The state of the agent.
+    */
+    public string id;
+    public float x, y, z;
+    public bool state;
+    public string direction;
+
+    public TrafficLigthData(string id, float x, float y, float z, bool state, string direction)
+    {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.state =state;
+        this.direction = direction;
+    }
+
 }
 
 [Serializable]
@@ -273,7 +304,14 @@ public class AgentController : MonoBehaviour
 
             foreach(AgentData trafficLigth in trafficLigthsData.positions)
             {
-                Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                if(trafficLights.ContainsKey(trafficLigth.id))
+                {
+                    trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetState(trafficLigth.state);
+                }
+                else
+                {
+                trafficLights[trafficLigth.id]=Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetDirection(trafficLigth.direction);
                 Instantiate(roadPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
             }
         }
