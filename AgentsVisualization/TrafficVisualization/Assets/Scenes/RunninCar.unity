@@ -367,10 +367,10 @@ MonoBehaviour:
   width: 10
   height: 10
   agentPrefab: {fileID: 3368301827413679823, guid: 81e0f858df4d44de0851dacd7a3913ab, type: 3}
-  obstaclePrefab: {fileID: 961990229689801968, guid: 0870e23a47df89e468e8af19c065fce0, type: 3}
+  obstaclePrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
   trafficLigthPrefab: {fileID: 1703832877110945768, guid: 20aa9188d167442d59377f5ba2df5728, type: 3}
   roadPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
-  destinationPrefab: {fileID: 33555395739272859, guid: 10a584233fb38a918af771ddce837268, type: 3}
+  destinationPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
   timeToUpdate: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

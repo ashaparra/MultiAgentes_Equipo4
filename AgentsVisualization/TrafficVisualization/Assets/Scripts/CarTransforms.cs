@@ -29,6 +29,10 @@ public class CarTransforms : MonoBehaviour
     float dt = 0.0f;
     private float lastRotationYDeg;
 
+    public List<GameObject> GetWheelObjects() // returns the list of wheel objects
+    {
+        return wheelsList;
+    }
 
     void Start()
     {
