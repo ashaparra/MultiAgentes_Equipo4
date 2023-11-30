@@ -160,6 +160,16 @@ class Car(Agent):
         
         return ((self.pos[0] - self.destination[0])**2 + (self.pos[1] - self.destination[1])**2)**0.5
     
+    def select_diagonal_neighbor(self, neighbors):
+        """
+        Selects a diagonal neighbor from the list of neighbors.
+        """
+        for neighbor in neighbors:
+            if self.is_diagonal_move(self.pos[0], self.pos[1], neighbor[0], neighbor[1]):
+                return neighbor
+        return None
+
+    
     def getPath(self):
                         # Create a custom graph for this car agent
         for node in self.custom_graph.nodes.values():
@@ -172,9 +182,9 @@ class Car(Agent):
         end_node = self.custom_graph.nodes.get(end_id)
 
 
-        print(self.custom_graph.nodes)
-        print("Start node: ", start_node, "Start id: ", start_id)
-        print("End node: ", end_node, "End id: ", end_id)
+        # print(self.custom_graph.nodes)
+        # print("Start node: ", start_node, "Start id: ", start_id)
+        # print("End node: ", end_node, "End id: ", end_id)
             
         dfinder = DijkstraFinder(diagonal_movement=DiagonalMovement.always)
         # Find the path from start to end using the custom graph
@@ -184,29 +194,47 @@ class Car(Agent):
     
     def move(self):
         """
-        Moves the car towards its destination using Dijkstra's pathfinding, considering obstacles and road direction.
+        Moves the car towards its destination using pathfinding, considering obstacles and road direction.
+        If the next cell is occupied and patience is zero, attempts to move to an alternative neighbor.
         """
 
-
-
-        
         if not self.path:
             self.getPath()
-        
+
         # If a path exists, move the car along the path
         if self.path and len(self.path) > 1:
-            if self.patience>0:
-                self.change_Position()
+            next_node = self.path[1]
+            nx = next_node.node_id % self.model.width
+            ny = next_node.node_id // self.model.width
+            next_step_pos = (nx, ny)
+
+            # Check if the next position is occupied
+            car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
+            if any(isinstance(content, (Car,Traffic_Light)) for content in car_agent_content):
+                if self.patience > 0:
+                    # If patience is above zero, just wait
+                    self.set_waiting()
+                else:
+                    # If patience is zero, try to find an alternative neighbor to move
+                    all_neighbors = self.get_traffic_neighbors()
+                    if all_neighbors:
+                        for neighbor in all_neighbors:
+                            # Check if the alternative position is available
+                            if not any(isinstance(content, Car) for content in self.model.grid.get_cell_list_contents(neighbor)):
+                                # Convert position to node ID and update the path
+                                id = neighbor[1] * self.model.width + neighbor[0]
+                                self.path = [self.custom_graph.nodes[id]] + self.path[1:]
+                                self.change_Position()
+                                self.patience =1
+                                return  # Successfully moved to an alternative position
+                    # If no alternatives are found, continue waiting
+                    self.set_waiting()
             else:
-               all_neighbors= self.get_traffic_neighbors()
-               if all_neighbors != None:
-                if len(all_neighbors)>0:
-                    all_neighbors.pop(0)
-                    self.pos = all_neighbors[0]
-                    self.getPath()
+                # Proceed with the original move if the next position is not occupied
+                self.change_Position()
         else:
-            #self.getPath()
             print("No path found or path is too short.")
+
 
     def get_traffic_neighbors(self):
         """
@@ -251,7 +279,7 @@ class Car(Agent):
 
                 all_neighbors = [vn.pos for neighbor in all_neighbors for vn in filter(lambda x: not isinstance(x, Obstacle), self.model.grid.get_cell_list_contents(neighbor))]
                 
-                print("cell:",self.pos, "neighbors:", all_neighbors)
+                #print("cell:",self.pos, "neighbors:", all_neighbors)
                 return all_neighbors
         return []
         
@@ -293,6 +321,8 @@ class Car(Agent):
         if self.pos[0] == self.destination[0] and self.pos[1] == self.destination[1]:
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
+            self.model.active_agents -= 1
+            print("Active agents: ", self.model.active_agents)
             # print("Car arrived at destination and was removed from the grid.")
 
     def step(self):
