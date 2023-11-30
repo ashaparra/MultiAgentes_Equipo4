@@ -43,7 +43,6 @@ class Car(Agent):
         """
         self.status = "moving"
 
-
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
         nodes = {}
@@ -194,47 +193,46 @@ class Car(Agent):
 
     
     def move(self):
-        """
-        Moves the car towards its destination using pathfinding, considering obstacles and road direction.
-        If the next cell is occupied and patience is zero, attempts to move to an alternative neighbor.
-        """
-
         if not self.path:
             self.getPath()
 
-        # If a path exists, move the car along the path
         if self.path and len(self.path) > 1:
             next_node = self.path[1]
             nx = next_node.node_id % self.model.width
             ny = next_node.node_id // self.model.width
-            next_step_pos = (nx, ny)
+            next_step_pos = (nx, ny)  
 
-            # Check if the next position is occupied
+            if self.is_red_light_ahead() and self.status == "waiting":
+                self.set_waiting()
+                return
+            
             car_agent_content = self.model.grid.get_cell_list_contents(next_step_pos)
-            if any(isinstance(content, (Car,Traffic_Light)) for content in car_agent_content):
+            if any(isinstance(content, (Car, Traffic_Light)) for content in car_agent_content):
                 if self.patience > 0:
-                    # If patience is above zero, just wait
                     self.set_waiting()
                 else:
-                    # If patience is zero, try to find an alternative neighbor to move
                     all_neighbors = self.get_traffic_neighbors()
-                    if all_neighbors:
-                        for neighbor in all_neighbors:
-                            # Check if the alternative position is available
-                            if not any(isinstance(content, Car) for content in self.model.grid.get_cell_list_contents(neighbor)):
-                                # Convert position to node ID and update the path
-                                id = neighbor[1] * self.model.width + neighbor[0]
-                                self.path = [self.custom_graph.nodes[id]] + self.path[1:]
-                                self.change_Position()
-                                self.patience =1
-                                return  # Successfully moved to an alternative position
-                    # If no alternatives are found, continue waiting
+                    for neighbor in all_neighbors:
+                    
+                        if not any(isinstance(content, (Car, Traffic_Light, Destination)) for content in self.model.grid.get_cell_list_contents(neighbor)):
+                            # Add the neighbor as the new starting point of the path
+                            neighbor_node_id = neighbor[1] * self.model.width + neighbor[0]
+                            neighbor_node = self.custom_graph.nodes[neighbor_node_id]
+                            self.path = [neighbor_node, neighbor_node]  # Set path to only include the neighbor
+                            self.change_Position()
+                            self.getPath()
+                            self.patience = 1  # Reset patience
+                            return  # Exit the function to wait for the next iteration
                     self.set_waiting()
             else:
-                # Proceed with the original move if the next position is not occupied
                 self.change_Position()
         else:
             print("No path found or path is too short.")
+
+        
+     
+
+
 
 
     def get_traffic_neighbors(self):
@@ -314,6 +312,19 @@ class Car(Agent):
 
             # Manually update self.pos to be a tuple after moving
             self.pos = next_step_pos
+
+    def is_red_light_ahead(self):
+        """
+        Checks if there is a red traffic light within the next two positions in front of the car.
+        """
+        extended_neighbors = self.get_traffic_neighbors()
+        for neighbor_pos in extended_neighbors:
+            cell_contents = self.model.grid.get_cell_list_contents(neighbor_pos)
+            traffic_light = next((content for content in cell_contents if isinstance(content, Traffic_Light)), None)
+            if traffic_light and not traffic_light.state:  # Check if red light
+                return True
+        return False
+
 
     def remove_car(self):
         """
