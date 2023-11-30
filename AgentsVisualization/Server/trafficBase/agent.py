@@ -26,6 +26,7 @@ class Car(Agent):
         self.custom_graph = self.create_custom_graph()
         self.path = []
 
+
     def create_custom_graph(self):
         # Create an empty dictionary to hold nodes, using their position as keys
         nodes = {}
