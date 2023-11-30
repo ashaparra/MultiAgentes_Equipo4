@@ -332,15 +332,26 @@ public class AgentController : MonoBehaviour
         }
 
         foreach (var id in idsToDelete)
+    {
+        if (agents.TryGetValue(id, out GameObject agentToDelete))
         {
-            GameObject agentToDelete = agents[id];
-            Destroy(agentToDelete); // Destroy the GameObject
+            // Get the CarTransforms component and call GetWheelObjects
+            CarTransforms carTransforms = agentToDelete.GetComponent<CarTransforms>();
+            List<GameObject> wheelsToDelete = carTransforms.GetWheelObjects();
+
+            foreach(GameObject wheel in wheelsToDelete)
+            {
+                Destroy(wheel); // Destroy each wheel
+            }
+
+            Destroy(agentToDelete); // Destroy the agent
             agents.Remove(id); // Remove from the dictionary
         }
-
-        updated = true;
-        if(!started) started = true;
     }
+    
+            updated = true;
+            if(!started) started = true;
+        }
 }
 
 
