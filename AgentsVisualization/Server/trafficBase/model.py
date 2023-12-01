@@ -54,13 +54,13 @@ class CityModel(Model):
                         agent = Destination(f"d_{r*self.width+c}", self)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
                         self.destinations.append(agent.pos)
-        
+        # Create the cars
         self.num_agents = N
         self.step_last_car = 0
         self.spawn_cars()               
         self.running = True
         
-        
+    # Function to spawn cars every n steps
     def spawn_cars(self):
         # Spawn cars only every n steps
         if self.step_last_car % 10 == 0:
@@ -81,7 +81,8 @@ class CityModel(Model):
                     self.cars_added += 1
 
         self.step_last_car += 1
-    
+
+    # Create a function to send the data to the server
     def send_data(self):
         # Define the URL and data
         arrived= self.num_agents - self.active_agents
@@ -110,6 +111,7 @@ class CityModel(Model):
         print("cars created: ", self.num_agents)
         print("cars that arrived: ", self.num_agents - self.active_agents)
         carposition = []
+        # Check for crashes -> end simulation
         for x in range(self.width):
             for y in range(self.height):
                 cell = self.grid.get_cell_list_contents([(x, y)])
@@ -121,6 +123,7 @@ class CityModel(Model):
                         return
                 carposition.clear()
         print("step:" ,self.schedule.steps)
+        # Send data every 100 steps
         if self.schedule.steps % 100 == 0:
             self.send_data()
         if self.cars_added == 0:
@@ -129,6 +132,7 @@ class CityModel(Model):
             print("cars that arrived: ", self.num_agents - self.active_agents)
             print("percentage of cars that arrived: ", (self.num_agents - self.active_agents)/self.num_agents)
             self.running = False
+        # After reaching 1000 steps, stop the simulation
         if self.step_last_car > 1000:
             print("TIMEOUT")
             print("cars created: ", self.num_agents)
