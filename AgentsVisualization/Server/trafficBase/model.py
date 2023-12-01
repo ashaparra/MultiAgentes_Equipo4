@@ -3,6 +3,8 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from agent import *
 import json
+import requests
+
 
 class CityModel(Model):
     """ 
@@ -21,6 +23,7 @@ class CityModel(Model):
         self.active_agents = 0
         self.cars_added = 0 
 
+
         # Load the map file. The map file is a text file where each character represents an agent.
         with open('./city_files/2023_base.txt') as baseFile:
             lines = baseFile.readlines()
@@ -37,7 +40,6 @@ class CityModel(Model):
                         agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col])
                         self.grid.place_agent(agent, (c, self.height - r - 1))
                     
-
                     elif col in ["d", "u", "r", "l"]:
                         agent = Traffic_Light(f"tl_{r*self.width+c}", self, False if col == "d" or col =="u" else True, dataDictionary[col], 7 if (col == "d" or col =="u") else 15)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
@@ -58,9 +60,10 @@ class CityModel(Model):
         self.spawn_cars()               
         self.running = True
         
+        
     def spawn_cars(self):
-        # Spawn cars only every 3 steps
-        if self.step_last_car % 3 == 0:
+        # Spawn cars only every n steps
+        if self.step_last_car % 10 == 0:
             positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
             self.cars_added = 0  # Counter for the number of cars added in this cycle
 
@@ -69,7 +72,7 @@ class CityModel(Model):
                 
                 # Check if the selected cell is already occupied by a car agent
                 if not any(isinstance(agent, Car) for agent in self.grid.get_cell_list_contents([pos])):
-                    patience = random.randint(1,2)
+                    patience = 1
                     agent = Car(f"c_{self.num_agents}", self, destination, 1)
                     self.active_agents += 1
                     self.grid.place_agent(agent, pos)
@@ -77,11 +80,26 @@ class CityModel(Model):
                     self.num_agents += 1
                     self.cars_added += 1
 
-            # If no cars were added in this cycle, stop the simulation
-            #if cars_added == 0:
-                #self.running = False
-
         self.step_last_car += 1
+    
+    def send_data(self):
+        # Define the URL and data
+        arrived= self.num_agents - self.active_agents
+        url = 'http://52.1.3.19:8585/api/attempts'
+        data = {
+            "year": 2023,
+            "classroom": 301,
+            "name": "Equipo 4: Nath y Asha",
+            "num_cars": arrived  # Assuming you want to send the number of cars
+        }
+
+        # Send the POST request
+        response = requests.post(url, json=data)
+
+        if response.ok:
+            print('Data sent successfully')
+        else:
+            print('Failed to send data:', response.text)
 
 
         
@@ -102,6 +120,9 @@ class CityModel(Model):
                         self.running = False
                         return
                 carposition.clear()
+        print("step:" ,self.schedule.steps)
+        if self.schedule.steps % 100 == 0:
+            self.send_data()
         if self.cars_added == 0:
             print("NO MORE SPACE")
             print("cars created: ", self.num_agents)

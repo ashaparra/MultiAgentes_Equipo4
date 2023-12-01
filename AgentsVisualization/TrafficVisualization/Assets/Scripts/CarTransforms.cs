@@ -24,10 +24,24 @@ public class CarTransforms : MonoBehaviour
     List<Mesh> wheelsMeshes;
     List<Vector3[]> baseWheelsVertices;
     List<Vector3[]> newWheelsVertices;
+    List<Color> colors;
     float timer = 0.0f;
     float timeToUpdate = 1.0f;
     float dt = 0.0f;
     private float lastRotationYDeg;
+
+    List<Color> possibleColors= new List<Color>(){
+        Color.red,
+        Color.green,
+        Color.blue,
+        Color.yellow,
+        Color.magenta,
+        Color.cyan,
+        Color.white,
+        Color.black,
+        Color.gray,
+        new Color(1.0f, 0.5f, 0.0f) // Orange: R=1, G=0.5, B=0
+    };
 
     public List<GameObject> GetWheelObjects() // returns the list of wheel objects
     {
@@ -36,6 +50,7 @@ public class CarTransforms : MonoBehaviour
 
     void Start()
     {
+        
         //Obtener mesh del carro
         mesh = GetComponentInChildren<MeshFilter>().mesh;
         baseVertices = mesh.vertices;
@@ -43,6 +58,13 @@ public class CarTransforms : MonoBehaviour
         for (int i = 0; i < baseVertices.Length; i++){
             newVertices[i] = baseVertices[i];
         }
+        //Colores
+        if (possibleColors.Count > 0)
+        {
+            Color randomColor = possibleColors[Random.Range(0, possibleColors.Count)];
+            ApplyColor(randomColor);
+        }
+
          //Crear llantas inicialmente en 0 0 0
         wheelsList = new List<GameObject>();
         for(int i =0; i<wheels.Count; i++){
@@ -62,12 +84,18 @@ public class CarTransforms : MonoBehaviour
                 newWheelsVertices[k][j] = wheelVertices[j];
             }
         }
+        
     }
     Vector3 NewTarget(Vector3 currentPosition, Vector3 targetPosition, float dt){
         
             dt=Mathf.Clamp(dt,0,1);
             Vector3 target = Vector3.Lerp(startPosition, endPosition, dt);
             return target;
+    }
+    void ApplyColor(Color color)
+    {
+        Renderer renderer = GetComponentInChildren<Renderer>();
+        renderer.material.color = color;
     }
     void Update()
     {

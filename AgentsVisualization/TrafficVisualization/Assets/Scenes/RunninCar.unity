@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657844, g: 0.49641222, b: 0.57481676, a: 1}
+  m_IndirectSpecularColor: {r: 0.4465788, g: 0.49641287, b: 0.5748173, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -208,13 +208,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1075787039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: 0.358903, y: 0.32060233, z: -0.13279782, w: 0.8664685}
+  m_LocalPosition: {x: -1.88, y: 7.23, z: -0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 45, y: 40.61, z: 0}
 --- !u!1 &1218143401
 GameObject:
   m_ObjectHideFlags: 0
@@ -367,11 +367,11 @@ MonoBehaviour:
   width: 10
   height: 10
   agentPrefab: {fileID: 3368301827413679823, guid: 81e0f858df4d44de0851dacd7a3913ab, type: 3}
-  obstaclePrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
+  obstaclePrefab: {fileID: 8329893862904558329, guid: c788a3e2850494ffb8d0a568aca90366, type: 3}
   trafficLigthPrefab: {fileID: 1703832877110945768, guid: 20aa9188d167442d59377f5ba2df5728, type: 3}
   roadPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
-  destinationPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
-  timeToUpdate: 0.1
+  destinationPrefab: {fileID: 8329893862904558329, guid: c788a3e2850494ffb8d0a568aca90366, type: 3}
+  timeToUpdate: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
