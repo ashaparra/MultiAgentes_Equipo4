@@ -30,6 +30,7 @@ public class CarTransforms : MonoBehaviour
     float dt = 0.0f;
     private float lastRotationYDeg;
 
+    // Lista de colores posibles para el carro
     List<Color> possibleColors= new List<Color>(){
         Color.red,
         Color.green,
