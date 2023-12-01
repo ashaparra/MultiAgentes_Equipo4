@@ -40,7 +40,6 @@ class CityModel(Model):
                         agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col])
                         self.grid.place_agent(agent, (c, self.height - r - 1))
                     
-
                     elif col in ["d", "u", "r", "l"]:
                         agent = Traffic_Light(f"tl_{r*self.width+c}", self, False if col == "d" or col =="u" else True, dataDictionary[col], 7 if (col == "d" or col =="u") else 15)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
@@ -63,8 +62,8 @@ class CityModel(Model):
         
         
     def spawn_cars(self):
-        # Spawn cars only every 3 steps
-        if self.step_last_car % 3 == 0:
+        # Spawn cars only every n steps
+        if self.step_last_car % 10 == 0:
             positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
             self.cars_added = 0  # Counter for the number of cars added in this cycle
 
@@ -80,10 +79,6 @@ class CityModel(Model):
                     self.schedule.add(agent)
                     self.num_agents += 1
                     self.cars_added += 1
-
-            # If no cars were added in this cycle, stop the simulation
-            #if cars_added == 0:
-                #self.running = False
 
         self.step_last_car += 1
     
@@ -112,19 +107,19 @@ class CityModel(Model):
         '''Advance the model by one step.'''
         self.schedule.step()
         self.spawn_cars()
-        #print("cars created: ", self.num_agents)
-        #print("cars that arrived: ", self.num_agents - self.active_agents)
+        print("cars created: ", self.num_agents)
+        print("cars that arrived: ", self.num_agents - self.active_agents)
         carposition = []
-        # for x in range(self.width):
-        #     for y in range(self.height):
-        #         cell = self.grid.get_cell_list_contents([(x, y)])
-        #         if any(isinstance(content, Car) for content in cell):
-        #             carposition.append((x, y))
-        #             if len(carposition) > 1:
-        #                 print("CRASH")
-        #                 self.running = False
-        #                 return
-                # carposition.clear()
+        for x in range(self.width):
+            for y in range(self.height):
+                cell = self.grid.get_cell_list_contents([(x, y)])
+                if any(isinstance(content, Car) for content in cell):
+                    carposition.append((x, y))
+                    if len(carposition) > 1:
+                        print("CRASH")
+                        self.running = False
+                        return
+                carposition.clear()
         print("step:" ,self.schedule.steps)
         if self.schedule.steps % 100 == 0:
             self.send_data()

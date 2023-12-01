@@ -139,7 +139,6 @@ public class AgentController : MonoBehaviour
     public GameObject agentPrefab, obstaclePrefab, trafficLigthPrefab, roadPrefab, destinationPrefab;
     public float timeToUpdate = 0.5f;
     private float timer, dt;
-    Dictionary<string, List<GameObject>> carWheels = new Dictionary<string, List<GameObject>>();
 
     void Start()
     {
@@ -174,17 +173,6 @@ public class AgentController : MonoBehaviour
         {
             timer -= Time.deltaTime;
             dt = 1.0f - (timer / timeToUpdate);
-
-            // Iterates over the agents to update their positions.
-            // The positions are interpolated between the previous and current positions.
-            foreach(var agent in currPositions)
-            {
-                Vector3 prevPos = prevPositions[agent.Key];
-                Vector3 currPos = agent.Value;
-
-                //agents[agent.Key].GetComponent<CarTransforms>().SetMove(prevPos, currPos, dt);
-                
-            }
             foreach(var tl in trafficLightsData.positions)
             {
                 if(trafficLights.ContainsKey(tl.id))
@@ -192,9 +180,6 @@ public class AgentController : MonoBehaviour
                     trafficLights[tl.id].GetComponent<TrafficLight>().SetState(tl.state);
                 }
             }
-
-            // float t = (timer / timeToUpdate);x
-            // dt = t * t * ( 3f - 2f*t);
         }
     }
  
@@ -248,49 +233,6 @@ public class AgentController : MonoBehaviour
             StartCoroutine(GetDestinationsData());
         }
     }
-
-    // IEnumerator GetAgentsData() 
-    // {
-    //     // The GetAgentsData method is used to get the agents data from the server.
-
-    //     UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
-    //     yield return www.SendWebRequest();
- 
-    //     if (www.result != UnityWebRequest.Result.Success)
-    //         Debug.Log(www.error);
-    //     else 
-    //     {
-    //         // Once the data has been received, it is stored in the agentsData variable.
-    //         // Then, it iterates over the agentsData.positions list to update the agents positions.
-    //         //Debug.Log(www.downloadHandler.text);
-    //         agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
-    //         //Debug.Log(agentsData.positions.Count);
-    //         Debug.Log("New step");
-    //         foreach(AgentData agent in agentsData.positions)
-    //         {
-    //             //Debug.Log(agent.id);
-    //             Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
-
-    //                 if(agents.ContainsKey(agent.id))
-    //                 {
-    //                     Vector3 currentPos = new Vector3();
-                        
-    //                         Debug.Log(agent.id + " " + currentPos + " " + newAgentPosition);
-    //                         agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
-    //                         agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
-
-    //                 }
-    //                 else
-    //                 {
-    //                     agents[agent.id]=Instantiate(agentPrefab, new Vector3(0,0,0), Quaternion.identity);
-    //                     agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
-    //                 }
-    //         }
-
-    //         updated = true;
-    //         if(!started) started = true;
-    //     }
-    // }
     IEnumerator GetAgentsData() 
 {
     UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
@@ -366,8 +308,6 @@ public class AgentController : MonoBehaviour
         {
             obstacleData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
 
-            Debug.Log(obstacleData.positions);
-
             foreach(AgentData obstacle in obstacleData.positions)
             {
                 GameObject obstacleObject=Instantiate(obstaclePrefab, new Vector3(obstacle.x, obstacle.y, obstacle.z), Quaternion.identity);
@@ -387,8 +327,6 @@ public class AgentController : MonoBehaviour
         else 
         {
             trafficLightsData = JsonUtility.FromJson<TrafficLightsData>(www.downloadHandler.text);
-
-            Debug.Log(trafficLightsData.positions);
 
             foreach(TrafficLigthData trafficLigth in trafficLightsData.positions)
             {
@@ -417,8 +355,6 @@ public class AgentController : MonoBehaviour
         {
             roadsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
 
-            Debug.Log(roadsData.positions);
-
             foreach(AgentData road in roadsData.positions)
             {
                 Instantiate(roadPrefab, new Vector3(road.x, road.y, road.z), Quaternion.identity);
@@ -437,8 +373,6 @@ public class AgentController : MonoBehaviour
         else 
         {
             destinationsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
-
-            Debug.Log(destinationsData.positions);
 
             foreach(AgentData destination in destinationsData.positions)
             {

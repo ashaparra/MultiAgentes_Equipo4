@@ -223,6 +223,8 @@ class Car(Agent):
                             self.getPath()
                             self.patience = 1  # Reset patience
                             return  # Exit the function to wait for the next iteration
+                        if any(isinstance(content, Traffic_Light) for content in self.model.grid.get_cell_list_contents(neighbor)):
+                            self.patience = 1
                     self.set_waiting()
             else:
                 self.change_Position()
@@ -303,6 +305,7 @@ class Car(Agent):
             if traffic_light and not traffic_light.state:
                 # print("Traffic light is red, waiting...")
                 self.set_waiting()
+                self.patience = 1  # don't wait too long
                 return  # Do not move if the traffic light is red
 
             # Move the car to the next step position
