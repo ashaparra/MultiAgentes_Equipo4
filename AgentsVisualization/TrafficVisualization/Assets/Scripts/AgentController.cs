@@ -149,7 +149,7 @@ public class AgentController : MonoBehaviour
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
     Dictionary<string, GameObject> trafficLights;
-    bool updated = false, started = false;}
+    bool updated = false, started = false;
 
     // Prefabs for the agents, obstacles, traffic lights, roads, and destinations
     public GameObject agentPrefab, obstaclePrefab, trafficLigthPrefab, roadPrefab, destinationPrefab;
