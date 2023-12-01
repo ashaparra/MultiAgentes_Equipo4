@@ -243,11 +243,188 @@ IEnumerator SendConfiguration()
     }
     else
     {
-        // If the request succeeded, start coroutines to get the data of the agents, obstacles, traffic lights, roads, and destinations
-        StartCoroutine(GetAgentsData());
-        StartCoroutine(GetObstacleData());
-        StartCoroutine(GetTrafficLightsData());
-        StartCoroutine(GetRoadsData());
-        StartCoroutine(GetDestinationsData());
+       
+            // Once the configuration has been sent, it launches a coroutine to get the agents data.
+            StartCoroutine(GetAgentsData());
+            StartCoroutine(GetObstacleData());
+            StartCoroutine(GetTrafficLightsData());
+            StartCoroutine(GetRoadsData());
+            StartCoroutine(GetDestinationsData());
+        }
     }
+   IEnumerator GetAgentsData() 
+{
+    // Send a GET request to the server to get the data of the agents
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+    {
+        // If the request failed, log the error
+        Debug.Log(www.error);
+    }
+    else 
+    {
+        // If the request succeeded, parse the received data
+        agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+        HashSet<string> receivedIds = new HashSet<string>();
+        foreach(AgentData agent in agentsData.positions)
+        {
+            // Add the id of each agent to the set of received ids
+            receivedIds.Add(agent.id);
+            Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
+
+            if(agents.ContainsKey(agent.id))
+            {
+                // If the agent already exists, update its position and time
+                agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+                agents[agent.id].GetComponent<CarTransforms>().SetTime(timeToUpdate);
+            }
+            else
+            {
+                // If the agent does not exist, create it and set its position
+                agents[agent.id] = Instantiate(agentPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+                agents[agent.id].GetComponent<CarTransforms>().SetMove(newAgentPosition);
+            }
+        }
+
+        // Remove agents that are no longer in the received data
+        List<string> idsToDelete = new List<string>();
+        foreach (var agentPair in agents)
+        {
+            if (!receivedIds.Contains(agentPair.Key))
+            {
+                // If the id of the agent is not in the set of received ids, add it to the list of ids to delete
+                idsToDelete.Add(agentPair.Key);
+            }
+        }
+
+        foreach (var id in idsToDelete)
+        {
+            if (agents.TryGetValue(id, out GameObject agentToDelete))
+            {
+                // Get the CarTransforms component and call GetWheelObjects
+                CarTransforms carTransforms = agentToDelete.GetComponent<CarTransforms>();
+                List<GameObject> wheelsToDelete = carTransforms.GetWheelObjects();
+
+                foreach(GameObject wheel in wheelsToDelete)
+                {
+                    // Destroy each wheel
+                    Destroy(wheel);
+                }
+
+                // Destroy the agent and remove it from the dictionary
+                Destroy(agentToDelete);
+                agents.Remove(id);
+            }
+        }
+    
+        // Set the updated flag to true and the started flag to true if it is not already
+        updated = true;
+        if(!started) started = true;
+    }
+}
+
+    // This method gets the data of the obstacles
+IEnumerator GetObstacleData() 
+{
+    // Send a GET request to the server to get the data of the obstacles
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getObstaclesEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+        // If the request failed, log the error
+        Debug.Log(www.error);
+    else 
+    {
+        // If the request succeeded, parse the received data
+        obstacleData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+        foreach(AgentData obstacle in obstacleData.positions)
+        {
+            // For each obstacle in the received data, create an obstacle object at the obstacle's position
+            GameObject obstacleObject = Instantiate(obstaclePrefab, new Vector3(obstacle.x, obstacle.y, obstacle.z), Quaternion.identity);
+            // Get the Building component of the obstacle object and set its color
+            Building buildingComponent = obstacleObject.GetComponent<Building>();
+            buildingComponent.SetColor();
+        }
+    }
+}
+
+   IEnumerator GetTrafficLightsData() 
+{
+    // Send a GET request to the server to get the data of the traffic lights
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLightsEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+        // If the request failed, log the error
+        Debug.Log(www.error);
+    else 
+    {
+        // If the request succeeded, parse the received data
+        trafficLightsData = JsonUtility.FromJson<TrafficLightsData>(www.downloadHandler.text);
+
+        foreach(TrafficLigthData trafficLigth in trafficLightsData.positions)
+        {
+            if(trafficLights.ContainsKey(trafficLigth.id))
+            {
+                // If the traffic light already exists, update its state
+                trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetState(trafficLigth.state);
+            }
+            else
+            {
+                // If the traffic light does not exist, create it at the traffic light's position and set its direction
+                trafficLights[trafficLigth.id] = Instantiate(trafficLigthPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+                trafficLights[trafficLigth.id].GetComponent<TrafficLight>().SetDirection(trafficLigth.direction);
+                // Also, instantiate a road at the traffic light's position
+                Instantiate(roadPrefab, new Vector3(trafficLigth.x, trafficLigth.y, trafficLigth.z), Quaternion.identity);
+            }
+        }
+    } 
+}
+
+  IEnumerator GetRoadsData() 
+{
+    // Send a GET request to the server to get the data of the roads
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getRoadsEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+        // If the request failed, log the error
+        Debug.Log(www.error);
+    else 
+    {
+        // If the request succeeded, parse the received data
+        roadsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+        foreach(AgentData road in roadsData.positions)
+        {
+            // For each road in the received data, create a road object at the road's position
+            Instantiate(roadPrefab, new Vector3(road.x, road.y, road.z), Quaternion.identity);
+        }
+    }
+}
+
+   IEnumerator GetDestinationsData() 
+{
+    // Send a GET request to the server to get the data of the destinations
+    UnityWebRequest www = UnityWebRequest.Get(serverUrl + getDestinationsEndpoint);
+    yield return www.SendWebRequest();
+ 
+    if (www.result != UnityWebRequest.Result.Success)
+        // If the request failed, log the error
+        Debug.Log(www.error);
+    else 
+    {
+        // If the request succeeded, parse the received data
+        destinationsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+        foreach(AgentData destination in destinationsData.positions)
+        {
+            // For each destination in the received data, create a destination object at the destination's position
+            Instantiate(destinationPrefab, new Vector3(destination.x, destination.y, destination.z), Quaternion.identity);
+        }
+    }
+}
 }
